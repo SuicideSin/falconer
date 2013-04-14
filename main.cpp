@@ -43,22 +43,22 @@ void loop(const double dt)
 		a.emergency_mode_toggle();
 
 	if(msl::input_check(kb_w))
-		pitch=speed;
-
-	if(msl::input_check(kb_s))
 		pitch=-speed;
 
-	if(msl::input_check(kb_a))
-		roll=speed;
+	if(msl::input_check(kb_s))
+		pitch=speed;
 
-	if(msl::input_check(kb_d))
+	if(msl::input_check(kb_a))
 		roll=-speed;
 
+	if(msl::input_check(kb_d))
+		roll=speed;
+
 	if(msl::input_check(kb_q))
-		yaw=speed;
+		yaw=-speed;
 
 	if(msl::input_check(kb_e))
-		yaw=-speed;
+		yaw=speed;
 
 	if(msl::input_check(kb_up))
 		altitude=speed;

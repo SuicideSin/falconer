@@ -163,13 +163,9 @@ void ardrone::manuever(const float altitude,const float pitch,const float roll,c
 {
 	if(*this)
 	{
-		float inverted_roll=roll*-1.0;
-		float inverted_pitch=pitch*-1.0;
-		float inverted_yaw=yaw*-1.0;
-
 		bool hover=false;
-		std::string command="AT*PCMD="+msl::to_string(_count)+",1,"+msl::to_string(*(int*)(&inverted_roll))+","+msl::to_string(*(int*)(&inverted_pitch))
-			+","+msl::to_string(*(int*)(&altitude))+","+msl::to_string(*(int*)(&inverted_yaw))+"\r";
+		std::string command="AT*PCMD="+msl::to_string(_count)+",1,"+msl::to_string(*(int*)(&roll))+","+msl::to_string(*(int*)(&pitch))
+			+","+msl::to_string(*(int*)(&altitude))+","+msl::to_string(*(int*)(&yaw))+"\r";
 		++_count;
 		_control_socket<<command;
 	}
@@ -180,6 +176,26 @@ void ardrone::hover()
 	if(*this)
 	{
 		std::string command="AT*PCMD="+msl::to_string(_count)+",0,0,0,0,0\r";
+		++_count;
+		_control_socket<<command;
+	}
+}
+
+void ardrone::set_video_feed_front()
+{
+	if(*this)
+	{
+		std::string command="AT*CONFIG="+msl::to_string(_count)+",\"video:video_channel\",\"2\"\r";
+		++_count;
+		_control_socket<<command;
+	}
+}
+
+void ardrone::set_video_feed_bottom()
+{
+	if(*this)
+	{
+		std::string command="AT*CONFIG="+msl::to_string(_count)+",\"video:video_channel\",\"3\"\r";
 		++_count;
 		_control_socket<<command;
 	}

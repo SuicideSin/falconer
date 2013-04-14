@@ -14,6 +14,8 @@ class ardrone
 		void takeoff();
 		void manuever(const float altitude,const float pitch,const float roll,const float yaw);
 		void hover();
+		void set_video_feed_front();
+		void set_video_feed_bottom();
 		unsigned int battery_percent() const;
 		bool flying() const;
 		bool emergency_mode() const;
