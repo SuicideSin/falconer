@@ -3,10 +3,8 @@
 #include "msl/string_util.hpp"
 #include <time.h>
 
-#include <iostream>
-
-ardrone::ardrone(const std::string ip):_count(1),_control_socket(ip+":5556"),_navdata_socket(ip+":5554"),_battery_percent(0),
-	_landed(true),_emergency_mode(false),_low_battery(false),_ultrasonic_enabled(false),_video_enabled(false),
+ardrone::ardrone(const std::string ip):_count(1),_control_socket(ip+":5556"),_navdata_socket(ip+":5554"),_video_socket(ip+":5555"),
+	_battery_percent(0),_landed(true),_emergency_mode(false),_low_battery(false),_ultrasonic_enabled(false),_video_enabled(false),
 	_motors_good(false),_pitch(0),_roll(0),_yaw(0),_altitude(0)
 {}
 
@@ -23,14 +21,20 @@ bool ardrone::connect(unsigned int time_out)
 	{
 		_control_socket.connect_udp();
 		_navdata_socket.connect_udp();
+		_video_socket.connect_tcp();
 
 		unsigned int time_start=time(0);
 		char redirect_navdata_command[14]={1,0,0,0,0,0,0,0,0,0,0,0,0,0};
+		char video_wakeup_command[1]={1};
 
-		do _navdata_socket.write(redirect_navdata_command,14);
-		while(time(0)-time_start<time_out&&_navdata_socket.check()<=0);
+		do
+		{
+			_navdata_socket.write(redirect_navdata_command,14);
+			_video_socket.write(video_wakeup_command,1);
+		}
+		while(time(0)-time_start<time_out&&(_navdata_socket.check()<=0||_video_socket.check()<=0));
 
-		if(_navdata_socket.check()>0)
+		if(_navdata_socket.check()>0&&_video_socket.check()>0)
 			connected=true;
 	}
 
@@ -113,7 +117,13 @@ void ardrone::navdata_update()
 			}
 		}
 	}
+}
 
+void ardrone::video_update()
+{
+	if(*this)
+	{
+	}
 }
 
 void ardrone::land()

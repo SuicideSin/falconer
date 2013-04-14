@@ -75,6 +75,8 @@ void loop(const double dt)
 	}
 
 	a.manuever(altitude,pitch,roll,yaw);
+
+	a.video_update();
 }
 
 void draw()

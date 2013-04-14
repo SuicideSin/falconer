@@ -8,6 +8,7 @@ class ardrone
 		operator bool() const;
 		bool connect(unsigned int time_out=1);
 		void navdata_update();
+		void video_update();
 		void land();
 		void emergency_mode_toggle();
 		void takeoff();
@@ -28,7 +29,7 @@ class ardrone
 		unsigned int _count;
 		msl::socket _control_socket;
 		msl::socket _navdata_socket;
-		std::string _navdata_buffer;
+		msl::socket _video_socket;
 		unsigned int _battery_percent;
 		bool _landed;
 		bool _emergency_mode;
