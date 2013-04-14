@@ -1,1 +1,1 @@
-g++ main.cpp msl/*.cpp ardrone.cpp -o test -O -lGL -lGLU -lGLEW -lglui -lglut -lSOIL
+g++ main.cpp msl/*.cpp falconer.cpp -o falconer -O -lGL -lGLU -lGLEW -lglui -lglut -lSOIL
