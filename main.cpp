@@ -30,8 +30,6 @@ void loop(const double dt)
 {
 	a.navdata_update();
 
-	bool moved=false;
-
 	float speed=0.8;
 	float pitch=0;
 	float roll=0;
@@ -45,52 +43,28 @@ void loop(const double dt)
 		a.emergency_mode_toggle();
 
 	if(msl::input_check(kb_w))
-	{
 		pitch=speed;
-		moved=true;
-	}
 
 	if(msl::input_check(kb_s))
-	{
 		pitch=-speed;
-		moved=true;
-	}
 
 	if(msl::input_check(kb_a))
-	{
 		roll=speed;
-		moved=true;
-	}
 
 	if(msl::input_check(kb_d))
-	{
 		roll=-speed;
-		moved=true;
-	}
 
 	if(msl::input_check(kb_q))
-	{
 		yaw=speed;
-		moved=true;
-	}
 
 	if(msl::input_check(kb_e))
-	{
 		yaw=-speed;
-		moved=true;
-	}
 
 	if(msl::input_check(kb_up))
-	{
 		altitude=speed;
-		moved=true;
-	}
 
 	if(msl::input_check(kb_down))
-	{
 		altitude=-speed;
-		moved=true;
-	}
 
 	if(msl::input_check_pressed(kb_space))
 	{
@@ -100,10 +74,7 @@ void loop(const double dt)
 			a.takeoff();
 	}
 
-	//if(moved)
-		a.manuever(altitude,pitch,roll,yaw);
-	//else
-		//a.hover();
+	a.manuever(altitude,pitch,roll,yaw);
 }
 
 void draw()
