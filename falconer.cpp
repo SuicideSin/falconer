@@ -37,6 +37,8 @@ ardrone::ardrone(const std::string ip):_count(1),_control_socket(ip+":5556"),_na
 	_battery_percent(0),_landed(true),_emergency_mode(false),_low_battery(false),_ultrasonic_enabled(false),_video_enabled(false),
 	_motors_good(false),_pitch(0),_roll(0),_yaw(0),_altitude(0),_found_codec(true)
 {
+	av_log_set_level(AV_LOG_QUIET);
+
 	_camera_data=new uint8_t[640*368*3];
 
 	avcodec_register_all();
@@ -186,13 +188,13 @@ void ardrone::video_update()
 	if(*this)
 	{
 		char video_keepalive_command[1]={1};
-
-		parrot_video_encapsulation_t video_packet;
 		_video_socket<<video_keepalive_command;
 
+		parrot_video_encapsulation_t video_packet;
 		_av_packet.size=recv(_video_socket.system_socket(),_av_packet.data,64,MSG_WAITALL);
 		memcpy(&video_packet,_av_packet.data,_av_packet.size);
 		_av_packet.size=recv(_video_socket.system_socket(),_av_packet.data,video_packet.payload_size,MSG_WAITALL);
+
 		_av_packet.flags=0;
 
 		if(video_packet.frame_type==1)
