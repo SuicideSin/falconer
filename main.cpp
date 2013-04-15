@@ -7,15 +7,18 @@
 
 ardrone a;
 msl::socket video("192.168.1.1:5555");
+unsigned int textureId;
 
 int main()
 {
-	msl::start_2d("ardrone",640,480);
+	msl::start_2d("ardrone",640,360);
 	return 0;
 }
 
 void setup()
 {
+	glGenTextures(1, &textureId);
+
 	if(a.connect())
 	{
 		std::cout<<":)"<<std::endl;
@@ -89,10 +92,32 @@ void loop(const double dt)
 	a.manuever(altitude,pitch,roll,yaw);
 
 	a.video_update();
+
+	glBindTexture(GL_TEXTURE_2D,textureId);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,640,360,0,GL_RGB,GL_UNSIGNED_BYTE,(GLvoid*)a.video_data());
+	glBindTexture(GL_TEXTURE_2D,0);
 }
 
 void draw()
 {
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D,textureId);
+
+	glBegin(GL_QUADS);
+		glTexCoord2f(0,0);
+		glVertex2f(-320,180);
+		glTexCoord2f(1,0);
+		glVertex2f(320,180);
+		glTexCoord2f(1,1);
+		glVertex2f(320,-180);
+		glTexCoord2f(0,1);
+		glVertex2f(-320,-180);
+	glEnd();
+
+	glDisable(GL_TEXTURE_2D);
+
 	std::string data;
 	data+="Battery:\t"+msl::to_string(a.battery_percent())+"%\n";
 	data+="Pitch:\t\t"+msl::to_string(a.pitch())+"\n";

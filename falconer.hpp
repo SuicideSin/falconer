@@ -34,6 +34,7 @@ class ardrone
 		float roll() const;
 		float yaw() const;
 		int altitude() const;
+		uint8_t* video_data() const;
 
 	private:
 		unsigned int _count;

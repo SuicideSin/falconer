@@ -196,7 +196,7 @@ void ardrone::video_update()
 		if(avcodec_decode_video2(_av_context,_av_camera_cmyk,&frame_decoded,&_av_packet)>0&&frame_decoded>0)
 		{
 			SwsContext* _sws_context=sws_getContext(video_packet.encoded_stream_width,video_packet.encoded_stream_height,PIX_FMT_YUV420P,video_packet.encoded_stream_width,
-				video_packet.encoded_stream_height,PIX_FMT_BGR24,SWS_BICUBIC,NULL,NULL,NULL);
+				video_packet.encoded_stream_height,PIX_FMT_RGB24,SWS_BICUBIC,NULL,NULL,NULL);
 			avpicture_fill(reinterpret_cast<AVPicture*>(_av_camera_rgb),_camera_data,PIX_FMT_BGR24,video_packet.encoded_stream_width,video_packet.encoded_stream_height);
 			sws_scale(_sws_context,_av_camera_cmyk->data,_av_camera_cmyk->linesize,0,video_packet.display_height,_av_camera_rgb->data,_av_camera_rgb->linesize);
 			sws_freeContext(_sws_context);
@@ -327,4 +327,9 @@ float ardrone::roll() const
 float ardrone::yaw() const
 {
 	return _yaw;
+}
+
+uint8_t* ardrone::video_data() const
+{
+	return _camera_data;
 }
