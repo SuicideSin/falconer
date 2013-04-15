@@ -108,16 +108,19 @@ namespace msl
 			msl::socket accept();
 
 			//Read Function (Returns True if Read was Successful)
-			bool read(void* buffer,const unsigned int size) const;
+			bool read(void* buffer,const unsigned int size,const int flags=0) const;
 
 			//Write Function (Returns True if Write was Successful)
-			bool write(void* buffer,const unsigned int size) const;
+			bool write(void* buffer,const unsigned int size,const int flags=0) const;
 
 			//Check Function (Checks How Many Bytes there are to be Read, -1 on Error)
 			int check() const;
 
 			//IP Address Accessor (Read Only)
 			msl::ipv4 ip() const;
+
+			//System Socket Accessor
+			SOCKET system_socket() const;
 
 			//Stream Out Operator
 			template <typename T> friend msl::socket& operator<<(msl::socket& lhs,const T& rhs);
@@ -162,13 +165,13 @@ SOCKET socket_close(const SOCKET socket);
 int socket_check_read(const SOCKET socket,const unsigned int time_out=0);
 
 //Socket Peek Function (Same as socket_read but Leaves Bytes in Socket Buffer)
-bool socket_peek(const SOCKET socket,void* buffer,const unsigned int size);
+bool socket_peek(const SOCKET socket,void* buffer,const unsigned int size,const int flags=0);
 
 //Socket Read Function (Reads Bytes from Socket Buffer)
-bool socket_read(const SOCKET socket,void* buffer,const unsigned int size);
+bool socket_read(const SOCKET socket,void* buffer,const unsigned int size,const int flags=0);
 
 //Socket Write Function (Writes Bytes to Socket)
-bool socket_write(const SOCKET socket,void* buffer,const unsigned int size);
+bool socket_write(const SOCKET socket,void* buffer,const unsigned int size,const int flags=0);
 
 //End Define Guards
 #endif

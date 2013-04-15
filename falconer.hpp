@@ -1,10 +1,18 @@
 #include "msl/socket.hpp"
 #include <string>
 
+extern "C"
+{
+	typedef unsigned long UINT64_C;
+	#include <libavcodec/avcodec.h>
+	#include <libswscale/swscale.h>
+}
+
 class ardrone
 {
 	public:
 		ardrone(const std::string ip="192.168.1.1");
+		~ardrone();
 		operator bool() const;
 		bool connect(unsigned int time_out=1);
 		void navdata_update();
@@ -43,4 +51,10 @@ class ardrone
 		float _pitch;
 		float _roll;
 		float _yaw;
+		uint8_t* _camera_data;
+		AVPacket _av_packet;
+		AVCodec* _av_codec;
+		AVCodecContext* _av_context;
+		AVFrame* _av_camera_cmyk;
+		AVFrame* _av_camera_rgb;
 };
