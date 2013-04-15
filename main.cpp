@@ -6,7 +6,6 @@
 #include "falconer.hpp"
 
 ardrone a;
-msl::socket video("192.168.1.1:5555");
 unsigned int textureId;
 
 int main()
@@ -28,22 +27,11 @@ void setup()
 		std::cout<<":("<<std::endl;
 		exit(0);
 	}
-
-	video.connect_tcp();
 }
 
 void loop(const double dt)
 {
 	a.navdata_update();
-	video<<0;
-
-	if(video.check()>0)
-	{
-		uint8_t byte;
-
-		if(video.read(&byte,1))
-			std::cout<<std::hex<<(unsigned int)byte<<std::endl;
-	}
 
 	float speed=0.8;
 	float pitch=0;
