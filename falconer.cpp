@@ -153,7 +153,7 @@ void ardrone::navdata_update()
 		const int packet_size=548;			//nav-data-full packet size=548, nav-data-demo packet size=24
 		uint8_t byte[packet_size];
 
-		if(_navdata_socket.check()>0&&_navdata_socket.read(byte,packet_size))
+		if(_navdata_socket.check()>0&&_navdata_socket.read(byte,packet_size)==packet_size)
 		{
 			if(byte[0]==0x88&&byte[1]==0x77&&byte[2]==0x66&&byte[3]==0x55)
 			{
@@ -191,9 +191,9 @@ void ardrone::video_update()
 		_video_socket<<video_keepalive_command;
 
 		parrot_video_encapsulation_t video_packet;
-		_av_packet.size=recv(_video_socket.system_socket(),_av_packet.data,64,MSG_WAITALL);
+		_av_packet.size=_video_socket.read(_av_packet.data,sizeof(parrot_video_encapsulation_t),MSG_WAITALL);
 		memcpy(&video_packet,_av_packet.data,_av_packet.size);
-		_av_packet.size=recv(_video_socket.system_socket(),_av_packet.data,video_packet.payload_size,MSG_WAITALL);
+		_av_packet.size=_video_socket.read(_av_packet.data,video_packet.payload_size,MSG_WAITALL);
 
 		_av_packet.flags=0;
 

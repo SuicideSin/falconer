@@ -4,8 +4,8 @@
 extern "C"
 {
 	typedef unsigned long UINT64_C;
-	#include <libavcodec/avcodec.h>
-	#include <libswscale/swscale.h>
+	#include "libavcodec/avcodec.h"
+	#include "libswscale/swscale.h"
 }
 
 class ardrone

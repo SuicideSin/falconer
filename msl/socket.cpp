@@ -230,13 +230,13 @@ msl::socket msl::socket::accept()
 }
 
 //Read Function (Returns True if Read was Successful)
-bool msl::socket::read(void* buffer,const unsigned int size,const int flags) const
+int msl::socket::read(void* buffer,const unsigned int size,const int flags) const
 {
 	return socket_read(_socket,buffer,size,flags);
 }
 
 //Write Function (Returns True if Write was Successful)
-bool msl::socket::write(void* buffer,const unsigned int size,const int flags) const
+int msl::socket::write(void* buffer,const unsigned int size,const int flags) const
 {
 	return socket_write(_socket,buffer,size,flags);
 }
@@ -481,7 +481,7 @@ int socket_check_read(const SOCKET socket,const unsigned int time_out)
 }
 
 //Socket Peek Function (Same as socket_read but Leaves Bytes in Socket Buffer)
-bool socket_peek(const SOCKET socket,void* buffer,const unsigned int size,const int flags)
+int socket_peek(const SOCKET socket,void* buffer,const unsigned int size,const int flags)
 {
 	//Check for Bad Socket
 	if(socket==static_cast<unsigned int>(SOCKET_ERROR))
@@ -503,18 +503,18 @@ bool socket_peek(const SOCKET socket,void* buffer,const unsigned int size,const 
 
 		//On Error
 		if(bytes_read<=0)
-			return false;
+			return -1;
 
 		//Subtract Read Bytes
 		bytes_unread-=bytes_read;
 	}
 
 	//Return Success
-	return true;
+	return (size-bytes_unread);
 }
 
 //Socket Read Function (Reads Bytes from Socket Buffer)
-bool socket_read(const SOCKET socket,void* buffer,const unsigned int size,const int flags)
+int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const int flags)
 {
 	//Check for Bad Socket
 	if(socket==static_cast<unsigned int>(SOCKET_ERROR))
@@ -536,18 +536,18 @@ bool socket_read(const SOCKET socket,void* buffer,const unsigned int size,const 
 
 		//On Error
 		if(bytes_read<=0)
-			return false;
+			return -1;
 
 		//Subtract Read Bytes
 		bytes_unread-=bytes_read;
 	}
 
 	//Return Success
-	return true;
+	return (size-bytes_unread);
 }
 
 //Socket Write Function (Writes Bytes to Socket)
-bool socket_write(const SOCKET socket,void* buffer,const unsigned int size,const int flags)
+int socket_write(const SOCKET socket,void* buffer,const unsigned int size,const int flags)
 {
 	//Check for Bad Socket
 	if(socket==static_cast<unsigned int>(SOCKET_ERROR))
@@ -569,12 +569,12 @@ bool socket_write(const SOCKET socket,void* buffer,const unsigned int size,const
 
 		//On Error
 		if(bytes_sent<=0)
-			return false;
+			return -1;
 
 		//Subtract Written Bytes
 		bytes_unsent-=(unsigned int)bytes_sent;
 	}
 
 	//Return Success
-	return true;
+	return (size-bytes_unsent);
 }
