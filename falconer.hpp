@@ -52,6 +52,7 @@ class ardrone
 		float _pitch;
 		float _roll;
 		float _yaw;
+		bool _found_codec;
 		uint8_t* _camera_data;
 		AVPacket _av_packet;
 		AVCodec* _av_codec;

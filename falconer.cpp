@@ -35,7 +35,7 @@ struct parrot_video_encapsulation_t
 
 ardrone::ardrone(const std::string ip):_count(1),_control_socket(ip+":5556"),_navdata_socket(ip+":5554"),_video_socket(ip+":5555"),
 	_battery_percent(0),_landed(true),_emergency_mode(false),_low_battery(false),_ultrasonic_enabled(false),_video_enabled(false),
-	_motors_good(false),_pitch(0),_roll(0),_yaw(0),_altitude(0)
+	_motors_good(false),_pitch(0),_roll(0),_yaw(0),_altitude(0),_found_codec(true)
 {
 	_camera_data=new uint8_t[640*368*3];
 
@@ -47,14 +47,17 @@ ardrone::ardrone(const std::string ip):_count(1),_control_socket(ip+":5556"),_na
 	_av_codec=avcodec_find_decoder(CODEC_ID_H264);
 
 	if(!_av_codec)
-		exit(1);
+		_found_codec=false;
 
-	_av_context=avcodec_alloc_context3(_av_codec);
-	_av_camera_cmyk=avcodec_alloc_frame();
-	_av_camera_rgb=avcodec_alloc_frame();
+	if(_found_codec)
+	{
+		_av_context=avcodec_alloc_context3(_av_codec);
+		_av_camera_cmyk=avcodec_alloc_frame();
+		_av_camera_rgb=avcodec_alloc_frame();
 
-	if(avcodec_open2(_av_context,_av_codec,NULL)<0)
-		exit(1);
+		if(avcodec_open2(_av_context,_av_codec,NULL)<0)
+			_found_codec=false;
+	}
 }
 
 ardrone::~ardrone()
@@ -69,7 +72,7 @@ ardrone::~ardrone()
 
 ardrone::operator bool() const
 {
-	return (_control_socket&&_navdata_socket);
+	return (_control_socket&&_navdata_socket&&_video_socket&&_found_codec);
 }
 
 bool ardrone::connect(unsigned int time_out)
