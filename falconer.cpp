@@ -87,15 +87,16 @@ bool ardrone::connect(unsigned int time_out)
 
 		unsigned int time_start=time(0);
 		char redirect_navdata_command[14]={1,0,0,0,0,0,0,0,0,0,0,0,0,0};
+		char video_wakeup_command[1]={1};
 
 		do
 		{
 			_navdata_socket.write(redirect_navdata_command,14);
-			//_video_socket.write(video_wakeup_command,1);
+			_video_socket.write(video_wakeup_command,1);
 		}
-		while(time(0)-time_start<time_out&&(_navdata_socket.check()<=0/*||_video_socket.check()<=0*/));
+		while(time(0)-time_start<time_out&&(_navdata_socket.check()<=0||_video_socket.check()<=0));
 
-		if(_navdata_socket.check()>0/*&&_video_socket.check()>0*/)
+		if(_navdata_socket.check()>0&&_video_socket.check()>0)
 			connected=true;
 	}
 
@@ -184,7 +185,10 @@ void ardrone::video_update()
 {
 	if(*this)
 	{
+		char video_keepalive_command[1]={1};
+
 		parrot_video_encapsulation_t video_packet;
+		_video_socket<<video_keepalive_command;
 
 		_av_packet.size=recv(_video_socket.system_socket(),_av_packet.data,64,MSG_WAITALL);
 		memcpy(&video_packet,_av_packet.data,_av_packet.size);
