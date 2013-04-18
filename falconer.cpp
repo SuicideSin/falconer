@@ -86,20 +86,6 @@ bool ardrone::connect(unsigned int time_out)
 		_control_socket.connect_udp();
 		_navdata_socket.connect_udp();
 		_video_socket.connect_tcp();
-
-		unsigned int time_start=time(0);
-		char redirect_navdata_command[14]={1,0,0,0,0,0,0,0,0,0,0,0,0,0};
-		char video_wakeup_command[1]={1};
-
-		do
-		{
-			_navdata_socket.write(redirect_navdata_command,14);
-			_video_socket.write(video_wakeup_command,1);
-		}
-		while(time(0)-time_start<time_out&&(_navdata_socket.check()<=0||_video_socket.check()<=0));
-
-		if(_navdata_socket.check()>0&&_video_socket.check()>0)
-			connected=true;
 	}
 
 	if(*this)
@@ -141,6 +127,20 @@ bool ardrone::connect(unsigned int time_out)
 		std::string altitude_max_command="AT*CONFIG="+msl::to_string(_count)+",\"control:altitude_max\",\"4000\"\r";
 		++_count;
 		_control_socket<<altitude_max_command;
+
+		unsigned int time_start=time(0);
+		char redirect_navdata_command[14]={1,0,0,0,0,0,0,0,0,0,0,0,0,0};
+		char video_wakeup_command[1]={1};
+
+		do
+		{
+			_navdata_socket.write(redirect_navdata_command,14);
+			_video_socket.write(video_wakeup_command,1);
+		}
+		while(time(0)-time_start<time_out&&(_navdata_socket.check()<=0||_video_socket.check()<=0));
+
+		if(_navdata_socket.check()>0&&_video_socket.check()>0)
+			connected=true;
 	}
 
 	return (connected&&*this);

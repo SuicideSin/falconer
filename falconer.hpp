@@ -1,3 +1,6 @@
+#ifndef FALCONER_H
+#define FALCONER_H
+
 #include "msl/socket.hpp"
 #include <string>
 
@@ -60,3 +63,5 @@ class ardrone
 		AVFrame* _av_camera_cmyk;
 		AVFrame* _av_camera_rgb;
 };
+
+#endif
