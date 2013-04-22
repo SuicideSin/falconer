@@ -40,6 +40,8 @@ class ardrone
 		uint8_t* video_data() const;
 
 	private:
+		ardrone(const ardrone& copy);
+		ardrone& operator=(const ardrone& copy);
 		unsigned int _count;
 		msl::socket _control_socket;
 		msl::socket _navdata_socket;

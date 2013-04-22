@@ -12,18 +12,18 @@ struct parrot_video_encapsulation_t
 	uint16_t header_size;
 	uint32_t payload_size;					/* Amount of data following this PaVE */
 	uint16_t encoded_stream_width;			/* ex: 640 */
-	uint16_t encoded_stream_height;		/* ex: 368 */
-	uint16_t display_width;				/* ex: 640 */
+	uint16_t encoded_stream_height;			/* ex: 368 */
+	uint16_t display_width;					/* ex: 640 */
 	uint16_t display_height;				/* ex: 360 */
 	uint32_t frame_number;					/* frame position inside the current stream */
-	uint32_t timestamp;					/* in milliseconds */
+	uint32_t timestamp;						/* in milliseconds */
 	uint8_t total_chuncks;					/* number of UDP packets containing the current decodable payload */
 	uint8_t chunck_index ;					/* position of the packet - first chunk is #0 */
-	uint8_t frame_type;					/* I-frame, P-frame */
+	uint8_t frame_type;						/* I-frame, P-frame */
 	uint8_t control;						/* Special commands like end-of-stream or advertised frames */
 	uint32_t stream_byte_position_lw;		/* Byte position of the current payload in the encoded stream - lower 32-bit word */
 	uint32_t stream_byte_position_uw;		/* Byte position of the current payload in the encoded stream - upper 32-bit word */
-	uint16_t stream_id;					/* This ID indentifies packets that should be recorded together */
+	uint16_t stream_id;						/* This ID indentifies packets that should be recorded together */
 	uint8_t total_slices;					/* number of slices composing the current frame */
 	uint8_t slice_index ;					/* position of the current slice in the frame */
 	uint8_t header1_size;					/* H.264 only : size of SPS inside payload - no SPS present if value is zero */
@@ -64,6 +64,9 @@ ardrone::ardrone(const std::string ip):_count(1),_control_socket(ip+":5556"),_na
 
 ardrone::~ardrone()
 {
+	_control_socket.close();
+	_navdata_socket.close();
+	_video_socket.close();
 	delete[] _camera_data;
 	avcodec_close(_av_context);
 	av_free(_av_context);
