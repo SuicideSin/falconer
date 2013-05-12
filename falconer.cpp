@@ -77,21 +77,41 @@ ardrone::~ardrone()
 
 ardrone::operator bool() const
 {
-	return (_control_socket&&_navdata_socket&&_video_socket&&_found_codec);
+	return good();
+}
+
+bool ardrone::good() const
+{
+	return (control_good()&&navdata_good()&&video_good());
+}
+
+bool ardrone::control_good() const
+{
+	return _control_socket;
+}
+
+bool ardrone::navdata_good() const
+{
+	return _navdata_socket;
+}
+
+bool ardrone::video_good() const
+{
+	return (_video_socket&&_found_codec);
 }
 
 bool ardrone::connect(unsigned int time_out)
 {
 	bool connected=false;
 
-	if(!*this)
+	if(!good())
 	{
 		_control_socket.connect_udp();
 		_navdata_socket.connect_udp();
 		_video_socket.connect_tcp();
 	}
 
-	if(*this)
+	if(good())
 	{
 		_count=1;
 
@@ -131,29 +151,29 @@ bool ardrone::connect(unsigned int time_out)
 		++_count;
 		_control_socket<<altitude_max_command;
 
-		unsigned int time_start=time(0);
+		unsigned int time_start=time(0)/1000;
 		char redirect_navdata_command[14]={1,0,0,0,0,0,0,0,0,0,0,0,0,0};
 		char video_wakeup_command[1]={1};
 
 		do
 		{
-			_navdata_socket.write(redirect_navdata_command,14);
-			_video_socket.write(video_wakeup_command,1);
-		}
-		while(time(0)-time_start<time_out&&(_navdata_socket.check()<=0||_video_socket.check()<=0));
+			if(_navdata_socket.check()<=0)
+				_navdata_socket.write(redirect_navdata_command,14);
 
-		if(_navdata_socket.check()>0&&_video_socket.check()>0)
-			connected=true;
+			if(_video_socket.check()<=0)
+				_video_socket.write(video_wakeup_command,1);
+		}
+		while(time(0)/1000-time_start<time_out);
 	}
 
-	return (connected&&*this);
+	return good();
 }
 
 void ardrone::navdata_update()
 {
-	if(*this)
+	if(good())
 	{
-		const int packet_size=548;			//nav-data-full packet size=548, nav-data-demo packet size=24
+		const int packet_size=500;			//nav-data-full packet size=500, nav-data-demo packet size=24
 		uint8_t byte[packet_size];
 
 		if(_navdata_socket.check()>0&&_navdata_socket.read(byte,packet_size)==packet_size)
@@ -188,7 +208,7 @@ void ardrone::navdata_update()
 
 void ardrone::video_update()
 {
-	if(*this)
+	if(good())
 	{
 		char video_keepalive_command[1]={1};
 		_video_socket<<video_keepalive_command;
@@ -218,7 +238,7 @@ void ardrone::video_update()
 
 void ardrone::land()
 {
-	if(*this)
+	if(good())
 	{
 		int land_flags=1<<18|1<<20|1<<22|1<<24|1<<28;
 		std::string command="AT*REF="+msl::to_string(_count)+","+msl::to_string(land_flags)+"\r";
@@ -229,7 +249,7 @@ void ardrone::land()
 
 void ardrone::emergency_mode_toggle()
 {
-	if(*this)
+	if(good())
 	{
 		int emergency_flags=1<<8|1<<18|1<<20|1<<22|1<<24|1<<28;
 		std::string command="AT*REF="+msl::to_string(_count)+","+msl::to_string(emergency_flags)+"\r";
@@ -240,7 +260,7 @@ void ardrone::emergency_mode_toggle()
 
 void ardrone::takeoff()
 {
-	if(*this)
+	if(good())
 	{
 		int takeoff_flags=1<<9|1<<18|1<<20|1<<22|1<<24|1<<28;
 		std::string command="AT*REF="+msl::to_string(_count)+","+msl::to_string(takeoff_flags)+"\r";
@@ -251,7 +271,7 @@ void ardrone::takeoff()
 
 void ardrone::manuever(const float altitude,const float pitch,const float roll,const float yaw)
 {
-	if(*this)
+	if(good())
 	{
 		bool hover=false;
 		std::string command="AT*PCMD="+msl::to_string(_count)+",1,"+msl::to_string(*(int*)(&roll))+","+msl::to_string(*(int*)(&pitch))
@@ -263,7 +283,7 @@ void ardrone::manuever(const float altitude,const float pitch,const float roll,c
 
 void ardrone::hover()
 {
-	if(*this)
+	if(good())
 	{
 		std::string command="AT*PCMD="+msl::to_string(_count)+",0,0,0,0,0\r";
 		++_count;
@@ -273,7 +293,7 @@ void ardrone::hover()
 
 void ardrone::set_video_feed_front()
 {
-	if(*this)
+	if(good())
 	{
 		std::string command="AT*CONFIG="+msl::to_string(_count)+",\"video:video_channel\",\"2\"\r";
 		++_count;
@@ -283,7 +303,7 @@ void ardrone::set_video_feed_front()
 
 void ardrone::set_video_feed_bottom()
 {
-	if(*this)
+	if(good())
 	{
 		std::string command="AT*CONFIG="+msl::to_string(_count)+",\"video:video_channel\",\"3\"\r";
 		++_count;

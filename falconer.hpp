@@ -17,6 +17,10 @@ class ardrone
 		ardrone(const std::string ip="192.168.1.1");
 		~ardrone();
 		operator bool() const;
+		bool good() const;
+		bool control_good() const;
+		bool navdata_good() const;
+		bool video_good() const;
 		bool connect(unsigned int time_out=1);
 		void navdata_update();
 		void video_update();

@@ -16,7 +16,7 @@ int main()
 
 void setup()
 {
-	glGenTextures(1, &textureId);
+	glGenTextures(1,&textureId);
 
 	if(a.connect())
 	{
