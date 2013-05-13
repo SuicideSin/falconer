@@ -1,1 +1,1 @@
-g++ main.cpp msl/*.cpp falconer.cpp -o falconer -O -lGL -lGLU -lGLEW -lglui -lglut -lSOIL -lavcodec -lswscale
+g++ example.cpp msl/*.cpp falconer.cpp -o falconer -O -lGL -lGLU -lGLEW -lglui -lglut -lSOIL -lavcodec -lswscale

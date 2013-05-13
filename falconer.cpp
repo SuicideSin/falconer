@@ -163,7 +163,7 @@ bool ardrone::connect(unsigned int time_out)
 			if(_video_socket.check()<=0)
 				_video_socket.write(video_wakeup_command,1);
 		}
-		while(time(0)/1000-time_start<time_out);
+		while(time(0)/1000-time_start<time_out&&!good());
 	}
 
 	return good();
