@@ -1,6 +1,6 @@
 //Socket Source
 //	Created By:		Mike Moss
-//	Modified On:	03/12/2013
+//	Modified On:	04/25/2013
 
 //Required Libraries:
 //	wsock32 (windows only)
@@ -137,7 +137,8 @@ msl::socket::socket(const std::string& address):std::ostream(reinterpret_cast<st
 }
 
 //Socket Class Copy Constructor
-msl::socket::socket(const msl::socket& copy):std::ostream(reinterpret_cast<std::streambuf*>(NULL)),_address(copy._address),_socket(copy._socket),_hosting(copy._hosting)
+msl::socket::socket(const msl::socket& copy):std::ostream(reinterpret_cast<std::streambuf*>(NULL)),
+	_address(copy._address),_socket(copy._socket),_hosting(copy._hosting),_time_out(copy._time_out)
 {}
 
 //Socket Class Copy Assignment Operator
@@ -148,6 +149,7 @@ msl::socket& msl::socket::operator=(const msl::socket& copy)
 		_address=copy._address;
 		_socket=copy._socket;
 		_hosting=copy._hosting;
+		_time_out=copy._time_out;
 	}
 
 	return *this;
@@ -272,26 +274,7 @@ SOCKET msl::socket::system_socket() const
 }
 
 //Temporary Socket Variables
-static bool socket_ignore_sigpipe=false;
 static bool socket_inited=false;
-
-//Unix Signal Setup
-#if(!defined(_WIN32)||defined(__CYGWIN__))
-	typedef void(*skt_signal_handler_fn)(const int sig);
-	static skt_signal_handler_fn socket_fallback_sigpipe=NULL;
-
-	static void socket_sigpipe_handler(const int sig)
-	{
-		if(socket_ignore_sigpipe)
-		{
-			signal(SIGPIPE,socket_sigpipe_handler);
-		}
-		else
-		{
-			socket_fallback_sigpipe(sig);
-		}
-	}
-#endif
 
 //Socket Initialize Function
 static void socket_init()
@@ -309,7 +292,7 @@ static void socket_init()
 
 		//Unix Initialize
 		#else
-			socket_fallback_sigpipe=signal(SIGPIPE,socket_sigpipe_handler);
+			signal(SIGPIPE,SIG_IGN);
 		#endif
 	}
 }
@@ -321,12 +304,15 @@ SOCKET socket_create(const msl::ipv4 ip,const unsigned int time_out,const bool U
 	socket_init();
 
 	//Connection Variables
-	unsigned int time_start=time(0);
+	unsigned int time_start=time(0)/1000;
 	sockaddr_in address=ip.build();
 	socklen_t address_length=sizeof(address);
 	int on=1;
 	unsigned int type=SOCK_STREAM;
 	SOCKET ret=socket(AF_INET,type,0);
+	linger linger_on_close;
+	linger_on_close.l_onoff=1;
+	linger_on_close.l_linger=10;
 
 	//UDP Connection Setup
 	if(UDP)
@@ -341,6 +327,9 @@ SOCKET socket_create(const msl::ipv4 ip,const unsigned int time_out,const bool U
 		//Check for Errors
 		if(ret!=static_cast<unsigned int>(SOCKET_ERROR))
 		{
+			if(setsockopt(ret,SOL_SOCKET,SO_LINGER,reinterpret_cast<const char*>(&linger_on_close),sizeof(linger)))
+				return socket_close(ret);
+
 			if(setsockopt(ret,SOL_SOCKET,SO_REUSEADDR,reinterpret_cast<const char*>(&on),sizeof(int)))
 				return socket_close(ret);
 
@@ -362,7 +351,7 @@ SOCKET socket_create(const msl::ipv4 ip,const unsigned int time_out,const bool U
 			return ret;
 		}
 	}
-	while(time(0)-time_start<time_out);
+	while(time(0)/1000-time_start<time_out);
 
 	//Close on Error
 	return socket_close(ret);
@@ -375,7 +364,7 @@ SOCKET socket_connect(const msl::ipv4 ip,const unsigned int time_out,const bool 
 	socket_init();
 
 	//Connection Variables
-	unsigned int time_start=time(0);
+	unsigned int time_start=time(0)/1000;
 	sockaddr_in address=ip.build();
 	int type=SOCK_STREAM;
 	SOCKET ret=SOCKET_ERROR;
@@ -394,7 +383,7 @@ SOCKET socket_connect(const msl::ipv4 ip,const unsigned int time_out,const bool 
 		if(connect(ret,reinterpret_cast<sockaddr*>(&address),sizeof(address))!=SOCKET_ERROR)
 			return ret;
 	}
-	while(time(0)-time_start<time_out);
+	while(time(0)/1000-time_start<time_out);
 
 	//Return Error Otherwise
 	return SOCKET_ERROR;
@@ -411,7 +400,7 @@ SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const unsigned int
 	socket_init();
 
 	//Connection Variables
-	unsigned int time_start=time(0);
+	unsigned int time_start=time(0)/1000;
 	sockaddr_in address;
 	socklen_t address_length=sizeof(address);
 	SOCKET ret=SOCKET_ERROR;
@@ -429,7 +418,7 @@ SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const unsigned int
 			return ret;
 		}
 	}
-	while(time(0)-time_start<time_out);
+	while(time(0)/1000-time_start<time_out);
 
 	//Return Error Otherwise
 	return SOCKET_ERROR;
@@ -447,12 +436,10 @@ SOCKET socket_close(const SOCKET socket)
 		//Windows Close Socket
 		#if(defined(_WIN32)&&!defined(__CYGWIN__))
 			closesocket(socket);
-		#else
 
 		//Unix Close Socket
-			socket_ignore_sigpipe=true;
+		#else
 			close(socket);
-			socket_ignore_sigpipe=false;
 		#endif
 	}
 
@@ -471,25 +458,13 @@ int socket_check_read(const SOCKET socket,const unsigned int time_out)
 	socket_init();
 
 	//Reading Variables
-	unsigned int time_start=time(0)/1000;
 	timeval temp={0,0};
 	fd_set rfds;
 	FD_ZERO(&rfds);
 	FD_SET(socket,&rfds);
 
 	//Try to Read from Socket
-	do
-	{
-		//Get Byte Number in Read Buffer
-		socket_ignore_sigpipe=true;
-		unsigned int read=select(1+socket,&rfds,NULL,NULL,&temp);
-		socket_ignore_sigpipe=false;
-		return read;
-	}
-	while(time(0)-time_start<time_out);
-
-	//Return -1 on Error
-	return -1;
+	return select(1+socket,&rfds,NULL,NULL,&temp);
 }
 
 //Socket Peek Function (Same as socket_read but Leaves Bytes in Socket Buffer)
@@ -516,9 +491,7 @@ int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const u
 	do
 	{
 		//Get Bytes in Read Buffer
-		socket_ignore_sigpipe=true;
 		unsigned int bytes_read=recv(socket,reinterpret_cast<char*>(buffer)+(size-bytes_unread),bytes_unread,flags);
-		socket_ignore_sigpipe=false;
 
 		//If Bytes Were Read
 		if(bytes_read>0)
@@ -531,7 +504,7 @@ int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const u
 				return size;
 		}
 	}
-	while(time(0)-time_start<time_out&&socket!=static_cast<unsigned int>(SOCKET_ERROR));
+	while(time(0)/1000-time_start<time_out);
 
 	//Return Bytes Read
 	return (size-bytes_unread);
@@ -555,9 +528,7 @@ int socket_write(const SOCKET socket,void* buffer,const unsigned int size,const 
 	do
 	{
 		//Get Bytes in Send Buffer
-		socket_ignore_sigpipe=true;
 		unsigned int bytes_sent=send(socket,reinterpret_cast<char*>(buffer)+(size-bytes_unsent),bytes_unsent,flags);
-		socket_ignore_sigpipe=false;
 
 		//If Bytes Were Sent
 		if(bytes_sent>0)
@@ -570,7 +541,7 @@ int socket_write(const SOCKET socket,void* buffer,const unsigned int size,const 
 				return size;
 		}
 	}
-	while(time(0)-time_start<time_out&&socket!=static_cast<unsigned int>(SOCKET_ERROR));
+	while(time(0)/1000-time_start<time_out);
 
 	//Return Bytes Sent
 	return (size-bytes_unsent);
