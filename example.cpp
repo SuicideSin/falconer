@@ -5,6 +5,14 @@
 #include <string>
 #include "falconer.hpp"
 
+#ifndef __APPLE__
+	#include <GL/glew.h>
+	#include <GL/glut.h>
+#else
+	#include <GLUT/glew.h>
+	#include <GLUT/glut.h>
+#endif
+
 ardrone a;
 unsigned int textureId;
 

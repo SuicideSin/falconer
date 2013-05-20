@@ -1,6 +1,6 @@
 //Socket Header
 //	Created By:		Mike Moss
-//	Modified On:	04/25/2013
+//	Modified On:	05/19/2013
 
 //Required Libraries:
 //	wsock32 (windows only)
@@ -40,9 +40,6 @@
 //MSL Namespace
 namespace msl
 {
-	//End Line Variable(std::endl doesn't work)
-	extern const char endl;
-
 	//Socket Class Pre-Declaration(For msl::ipv4)
 	class socket;
 
@@ -93,6 +90,9 @@ namespace msl
 			//Not Operator (For Boolean Operator)
 			bool operator!() const;
 
+			//Good Function (Tests If Socket Is Good)
+			bool good() const;
+
 			//Create Functions (Hosts a Socket Locally)
 			void create_tcp();
 			void create_udp(const unsigned int buffersize);
@@ -107,20 +107,20 @@ namespace msl
 			//Accept Function (Accepts a Remote Connection to a Local Socket)
 			msl::socket accept();
 
+			//Available Function (Checks if there are Bytes to be Read)
+			int available() const;
+
 			//Read Function (Returns Number of Bytes Read, -1 on Error)
 			int read(void* buffer,const unsigned int size,const int flags=0) const;
 
 			//Write Function (Returns Number of Bytes Sent, -1 on Error)
 			int write(void* buffer,const unsigned int size,const int flags=0) const;
 
-			//Check Function (Checks How Many Bytes there are to be Read, -1 on Error)
-			int check() const;
-
 			//Connection Timeout Mutator
-			void set_timeout(const unsigned int time_out);
+			void set_timeout(const long time_out);
 
 			//Connection Timeout Accessor
-			unsigned int timeout() const;
+			long timeout() const;
 
 			//IP Address Accessor (Read Only)
 			msl::ipv4 ip() const;
@@ -136,7 +136,7 @@ namespace msl
 			msl::ipv4 _address;
 			SOCKET _socket;
 			bool _hosting;
-			unsigned int _time_out;
+			long _time_out;
 	};
 
 	//Socket Class Stream Operator (Templated Function)
@@ -157,28 +157,28 @@ namespace msl
 }
 
 //Socket Create Function (Hosts a Socket Locally)
-SOCKET socket_create(const msl::ipv4 ip,const unsigned int time_out=0,const bool UDP=false,const unsigned int buffersize=200);
+SOCKET socket_create(const msl::ipv4 ip,const long time_out=0,const bool UDP=false,const unsigned int buffersize=200);
 
 //Socket Connection Function (Connects to a Remote Socket)
-SOCKET socket_connect(const msl::ipv4 ip,const unsigned int time_out=0,const bool UDP=false);
+SOCKET socket_connect(const msl::ipv4 ip,const long time_out=0,const bool UDP=false);
 
 //Socket Accept Function (Accepts a Remote Connection to a Local Socket)
-SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const unsigned int time_out=0);
+SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const long time_out=0);
 
 //Socket Close Function (Closes a Local Socket)
 SOCKET socket_close(const SOCKET socket);
 
-//Socket Check Read Function (Checks How Many Bytes there are to be Read, -1 on Error)
-int socket_check_read(const SOCKET socket,const unsigned int time_out=0);
+//Socket Available Function (Checks if there are Bytes to be Read, -1 on Error)
+int socket_available(const SOCKET socket,const long time_out=0);
 
 //Socket Peek Function (Same as socket_read but Leaves Bytes in Socket Buffer)
-int socket_peek(const SOCKET socket,void* buffer,const unsigned int size,const unsigned int time_out=200,const int flags=0);
+int socket_peek(const SOCKET socket,void* buffer,const unsigned int size,const long time_out=200,const int flags=0);
 
 //Socket Read Function (Returns Number of Bytes Read, -1 on Error)
-int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const unsigned int time_out=200,const int flags=0);
+int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const long time_out=200,const int flags=0);
 
 //Socket Write Function (Returns Number of Bytes Sent, -1 on Error)
-int socket_write(const SOCKET socket,void* buffer,const unsigned int size,const unsigned int time_out=200,const int flags=0);
+int socket_write(const SOCKET socket,void* buffer,const unsigned int size,const long time_out=200,const int flags=0);
 
 //End Define Guards
 #endif
@@ -221,10 +221,10 @@ int main()
 	server.create_tcp();
 
 	//Check Server
-	if(server)
-		std::cout<<"Server started =)"<<std::endl;
+	if(server.good())
+		std::cout<<"=)"<<std::endl;
 	else
-		std::cout<<"Server failed =("<<std::endl;
+		std::cout<<"=("<<std::endl;
 
 	//Vectors for Clients
 	std::vector<msl::socket> clients;
@@ -237,7 +237,7 @@ int main()
 		msl::socket client=server.accept();
 
 		//If Client Connected
-		if(client)
+		if(client.good())
 		{
 			clients.push_back(client);
 			client_messages.push_back("");
@@ -247,13 +247,13 @@ int main()
 		for(unsigned int ii=0;ii<clients.size();++ii)
 		{
 			//Service Good Clients
-			if(clients[ii])
+			if(clients[ii].good())
 			{
 				//Temp
 				char byte='\n';
 
 				//Get a Byte
-				if(clients[ii].check()>0&&clients[ii].read(&byte,1)==1)
+				if(clients[ii].available()>0&&clients[ii].read(&byte,1)==1)
 				{
 					//Add the Byte to Client Buffer
 					client_messages[ii]+=byte;

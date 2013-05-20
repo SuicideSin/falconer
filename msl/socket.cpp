@@ -1,6 +1,6 @@
 //Socket Source
 //	Created By:		Mike Moss
-//	Modified On:	04/25/2013
+//	Modified On:	05/19/2013
 
 //Required Libraries:
 //	wsock32 (windows only)
@@ -17,11 +17,8 @@
 //Signal Header
 #include <signal.h>
 
-//Time Header
-#include <time.h>
-
-//End Line Variable(std::endl doesn't work)
-const char msl::endl='\n';
+//Time Utility Header
+#include "time_util.hpp"
 
 //IPv4 Address Class Constructor(Default)
 msl::ipv4::ipv4(const unsigned char ip[4],const unsigned short port):_port(port)
@@ -112,17 +109,13 @@ msl::socket::socket(const std::string& address):std::ostream(reinterpret_cast<st
 		if(!(istr>>temp))
 			throw std::runtime_error("socket::socket - address is invalid!");
 
-		//IP Address
+		//IP Octet
 		if(ii<4)
-		{
 			ip[ii]=temp;
-		}
 
 		//Port
 		else
-		{
 			port=temp;
-		}
 
 		//Remove Delimeters (.'s and :'s)
 		istr>>remove_delimeter;
@@ -158,16 +151,28 @@ msl::socket& msl::socket::operator=(const msl::socket& copy)
 //Boolean Operator (Tests If Socket Is Good)
 msl::socket::operator bool() const
 {
+	return good();
+}
+
+//Not Operator (For Boolean Operator)
+bool msl::socket::operator!() const
+{
+	return !static_cast<bool>(*this);
+}
+
+//Good Function (Tests If Socket Is Good)
+bool msl::socket::good() const
+{
 	//Check for Errored Socket
 	if(_socket==static_cast<unsigned int>(SOCKET_ERROR)||_socket==static_cast<unsigned int>(INVALID_SOCKET))
 		return false;
 
 	//Check Reading Error
-	if(check()<0)
+	if(available()<0)
 		return false;
 
 	//Check Client Errors
-	if(!_hosting&&check()>0)
+	if(!_hosting&&available()>0)
 	{
 		char temp;
 
@@ -178,12 +183,6 @@ msl::socket::operator bool() const
 
 	//Else Socket is Good
 	return true;
-}
-
-//Not Operator (For Boolean Operator)
-bool msl::socket::operator!() const
-{
-	return !static_cast<bool>(*this);
 }
 
 //Create Function (Hosts a Socket Locally) (TCP)
@@ -225,10 +224,16 @@ msl::socket msl::socket::accept()
 {
 	msl::socket ret;
 
-	if(check()>0)
+	if(available()>0)
 		ret._socket=socket_accept(_socket,ret._address);
 
 	return ret;
+}
+
+//Available Function (Checks if there are Bytes to be Read, -1 on Error)
+int msl::socket::available() const
+{
+	return socket_available(_socket,0);
 }
 
 //Read Function (Returns -1 on Error Else Returns Number of Bytes Read)
@@ -243,20 +248,14 @@ int msl::socket::write(void* buffer,const unsigned int size,const int flags) con
 	return socket_write(_socket,buffer,size,_time_out,flags);
 }
 
-//Check Function (Checks How Many Bytes there are to be Read, -1 on Error)
-int msl::socket::check() const
-{
-	return socket_check_read(_socket);
-}
-
 //Connection Timeout Mutator
-void msl::socket::set_timeout(const unsigned int time_out)
+void msl::socket::set_timeout(const long time_out)
 {
 	_time_out=time_out;
 }
 
 //Connection Timeout Accessor
-unsigned int msl::socket::timeout() const
+long msl::socket::timeout() const
 {
 	return _time_out;
 }
@@ -298,13 +297,13 @@ static void socket_init()
 }
 
 //Socket Create Function (Hosts a Socket Locally)
-SOCKET socket_create(const msl::ipv4 ip,const unsigned int time_out,const bool UDP,const unsigned int buffersize)
+SOCKET socket_create(const msl::ipv4 ip,const long time_out,const bool UDP,const unsigned int buffersize)
 {
 	//Initialize Sockets
 	socket_init();
 
 	//Connection Variables
-	unsigned int time_start=time(0)/1000;
+	long time_start=msl::millis();
 	sockaddr_in address=ip.build();
 	socklen_t address_length=sizeof(address);
 	int on=1;
@@ -351,20 +350,20 @@ SOCKET socket_create(const msl::ipv4 ip,const unsigned int time_out,const bool U
 			return ret;
 		}
 	}
-	while(time(0)/1000-time_start<time_out);
+	while(msl::millis()-time_start<time_out);
 
 	//Close on Error
 	return socket_close(ret);
 }
 
 //Socket Connection Function (Connects to a Remote Socket)
-SOCKET socket_connect(const msl::ipv4 ip,const unsigned int time_out,const bool UDP)
+SOCKET socket_connect(const msl::ipv4 ip,const long time_out,const bool UDP)
 {
 	//Initialize Sockets
 	socket_init();
 
 	//Connection Variables
-	unsigned int time_start=time(0)/1000;
+	long time_start=msl::millis();
 	sockaddr_in address=ip.build();
 	int type=SOCK_STREAM;
 	SOCKET ret=SOCKET_ERROR;
@@ -383,14 +382,14 @@ SOCKET socket_connect(const msl::ipv4 ip,const unsigned int time_out,const bool 
 		if(connect(ret,reinterpret_cast<sockaddr*>(&address),sizeof(address))!=SOCKET_ERROR)
 			return ret;
 	}
-	while(time(0)/1000-time_start<time_out);
+	while(msl::millis()-time_start<time_out);
 
 	//Return Error Otherwise
 	return SOCKET_ERROR;
 }
 
 //Socket Accept Function (Accepts a Remote Connection to a Local Socket)
-SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const unsigned int time_out)
+SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const long time_out)
 {
 	//Check for Bad Host
 	if(socket==static_cast<unsigned int>(SOCKET_ERROR))
@@ -400,7 +399,7 @@ SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const unsigned int
 	socket_init();
 
 	//Connection Variables
-	unsigned int time_start=time(0)/1000;
+	long time_start=msl::millis();
 	sockaddr_in address;
 	socklen_t address_length=sizeof(address);
 	SOCKET ret=SOCKET_ERROR;
@@ -418,7 +417,7 @@ SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const unsigned int
 			return ret;
 		}
 	}
-	while(time(0)/1000-time_start<time_out);
+	while(msl::millis()-time_start<time_out);
 
 	//Return Error Otherwise
 	return SOCKET_ERROR;
@@ -447,8 +446,8 @@ SOCKET socket_close(const SOCKET socket)
 	return SOCKET_ERROR;
 }
 
-//Socket Check Read Function (Checks How Many Bytes there are to be Read, -1 on Error)
-int socket_check_read(const SOCKET socket,const unsigned int time_out)
+//Socket Available Function (Checks if there are Bytes to be Read, -1 on Error)
+int socket_available(const SOCKET socket,const long time_out)
 {
 	//Check for Bad Socket
 	if(socket==static_cast<unsigned int>(SOCKET_ERROR))
@@ -457,24 +456,40 @@ int socket_check_read(const SOCKET socket,const unsigned int time_out)
 	//Initialize Sockets
 	socket_init();
 
+	//Return Variable
+	int return_value=-1;
+
 	//Reading Variables
 	timeval temp={0,0};
 	fd_set rfds;
 	FD_ZERO(&rfds);
 	FD_SET(socket,&rfds);
+	long time_start=msl::millis();
 
-	//Try to Read from Socket
-	return select(1+socket,&rfds,NULL,NULL,&temp);
+	//While Socket is Good
+	do
+	{
+		//Try to Read from Socket
+		return_value=select(1+socket,&rfds,NULL,NULL,&temp);
+
+		//If Bytes Break
+		if(return_value>0)
+			break;
+	}
+	while(msl::millis()-time_start<time_out);
+
+	//Return Bytes Waiting
+	return return_value;
 }
 
 //Socket Peek Function (Same as socket_read but Leaves Bytes in Socket Buffer)
-int socket_peek(const SOCKET socket,void* buffer,const unsigned int size,const unsigned int time_out,const int flags)
+int socket_peek(const SOCKET socket,void* buffer,const unsigned int size,const long time_out,const int flags)
 {
 	return socket_read(socket,buffer,size,time_out,MSG_PEEK|flags);
 }
 
 //Socket Read Function (Reads Bytes from Socket Buffer)
-int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const unsigned int time_out,const int flags)
+int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const long time_out,const int flags)
 {
 	//Check for Bad Socket
 	if(socket==static_cast<unsigned int>(SOCKET_ERROR))
@@ -485,7 +500,7 @@ int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const u
 
 	//Reading Variables
 	unsigned int bytes_unread=size;
-	unsigned int time_start=time(0)/1000;
+	long time_start=msl::millis();
 
 	//While Socket is Good and There are Bytes to Read
 	do
@@ -504,14 +519,14 @@ int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const u
 				return size;
 		}
 	}
-	while(time(0)/1000-time_start<time_out);
+	while(msl::millis()-time_start<time_out);
 
 	//Return Bytes Read
 	return (size-bytes_unread);
 }
 
 //Socket Write Function (Writes Bytes to Socket)
-int socket_write(const SOCKET socket,void* buffer,const unsigned int size,const unsigned int time_out,const int flags)
+int socket_write(const SOCKET socket,void* buffer,const unsigned int size,const long time_out,const int flags)
 {
 	//Check for Bad Socket
 	if(socket==static_cast<unsigned int>(SOCKET_ERROR))
@@ -522,7 +537,7 @@ int socket_write(const SOCKET socket,void* buffer,const unsigned int size,const 
 
 	//Writing Variables
 	unsigned int bytes_unsent=size;
-	unsigned int time_start=time(0)/1000;
+	long time_start=msl::millis();
 
 	//While Socket is Good and There are Bytes to Send
 	do
@@ -541,7 +556,7 @@ int socket_write(const SOCKET socket,void* buffer,const unsigned int size,const 
 				return size;
 		}
 	}
-	while(time(0)/1000-time_start<time_out);
+	while(msl::millis()-time_start<time_out);
 
 	//Return Bytes Sent
 	return (size-bytes_unsent);

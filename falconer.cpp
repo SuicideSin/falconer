@@ -157,10 +157,10 @@ bool ardrone::connect(unsigned int time_out)
 
 		do
 		{
-			if(_navdata_socket.check()<=0)
+			if(_navdata_socket.available()<=0)
 				_navdata_socket.write(redirect_navdata_command,14);
 
-			if(_video_socket.check()<=0)
+			if(_video_socket.available()<=0)
 				_video_socket.write(video_wakeup_command,1);
 		}
 		while(time(0)/1000-time_start<time_out&&!good());
@@ -176,7 +176,7 @@ void ardrone::navdata_update()
 		const int packet_size=500;			//nav-data-full packet size=500, nav-data-demo packet size=24
 		uint8_t byte[packet_size];
 
-		if(_navdata_socket.check()>0&&_navdata_socket.read(byte,packet_size)==packet_size)
+		if(_navdata_socket.available()>0&&_navdata_socket.read(byte,packet_size)==packet_size)
 		{
 			if(byte[0]==0x88&&byte[1]==0x77&&byte[2]==0x66&&byte[3]==0x55)
 			{
