@@ -102,8 +102,6 @@ bool ardrone::video_good() const
 
 bool ardrone::connect(unsigned int time_out)
 {
-	bool connected=false;
-
 	if(!good())
 	{
 		_control_socket.connect_udp();
@@ -273,7 +271,6 @@ void ardrone::manuever(const float altitude,const float pitch,const float roll,c
 {
 	if(good())
 	{
-		bool hover=false;
 		std::string command="AT*PCMD="+msl::to_string(_count)+",1,"+msl::to_string(*(int*)(&roll))+","+msl::to_string(*(int*)(&pitch))
 			+","+msl::to_string(*(int*)(&altitude))+","+msl::to_string(*(int*)(&yaw))+"\r";
 		++_count;

@@ -57,10 +57,10 @@ class ardrone
 		bool _ultrasonic_enabled;
 		bool _video_enabled;
 		bool _motors_good;
-		int _altitude;
 		float _pitch;
 		float _roll;
 		float _yaw;
+		int _altitude;
 		bool _found_codec;
 		uint8_t* _camera_data;
 		AVPacket _av_packet;
