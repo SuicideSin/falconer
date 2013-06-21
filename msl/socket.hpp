@@ -1,6 +1,6 @@
 //Socket Header
 //	Created By:		Mike Moss
-//	Modified On:	05/19/2013
+//	Modified On:	05/20/2013
 
 //Required Libraries:
 //	wsock32 (windows only)
@@ -15,16 +15,16 @@
 //String Stream Header
 #include <sstream>
 
-//Windows Dependices
+//Windows Dependencies
 #if(defined(_WIN32)&&!defined(__CYGWIN__))
-	#include <winsock.h>
+	#include <winsock2.h>
 	#pragma comment(lib,"Ws2_32.lib")
 
 	#if(!defined(socklen_t))
 		typedef int socklen_t;
 	#endif
 
-//Unix Dependices
+//Unix Dependencies
 #else
 	#include <netinet/in.h>
 	#include <unistd.h>
@@ -84,13 +84,13 @@ namespace msl
 			//Copy Assignment Operator
 			socket& operator=(const msl::socket& copy);
 
-			//Boolean Operator (Tests If Socket Is Good)
+			//Boolean Operator (Tests if Socket is Good)
 			operator bool() const;
 
 			//Not Operator (For Boolean Operator)
 			bool operator!() const;
 
-			//Good Function (Tests If Socket Is Good)
+			//Good Function (Tests if Socket is Good)
 			bool good() const;
 
 			//Create Functions (Hosts a Socket Locally)
@@ -204,8 +204,14 @@ int socket_write(const SOCKET socket,void* buffer,const unsigned int size,const 
 //String Header
 #include <string>
 
+//String Stream Header
+#include <sstream>
+
 //String Utility Header
 #include "msl/string_util.hpp"
+
+//Time Utility Header
+#include "msl/time_util.hpp"
 
 //Vector Header
 #include <vector>
@@ -214,10 +220,17 @@ int socket_write(const SOCKET socket,void* buffer,const unsigned int size,const 
 void service_client(msl::socket& client,const std::string& message);
 
 //Main
-int main()
+int main(int argc,char* argv[])
 {
+	//Create Port
+	std::string server_port="8080";
+
+	//Get Command Line Port
+	if(argc>1)
+		server_port=argv[1];
+
 	//Create Server
-	msl::socket server("0.0.0.0:8080");
+	msl::socket server("0.0.0.0:"+server_port);
 	server.create_tcp();
 
 	//Check Server
@@ -276,6 +289,9 @@ int main()
 				--ii;
 			}
 		}
+
+		//Give OS a Break
+		usleep(0);
 	}
 
 	//Call Me Plz T_T
@@ -296,15 +312,12 @@ void service_client(msl::socket& client,const std::string& message)
 		istr>>request;
 		istr>>request;
 
-		//Remove Beginning "/"
-		request.erase(request.begin());
-
 		//Web Root Variable (Where your web files are)
 		std::string web_root="web";
 
 		//Check for Index
-		if(request=="")
-			request="index.html";
+		if(request=="/")
+			request="/index.html";
 
 		//Mime Type Variable (Default plain text)
 		std::string mime_type="text/plain";
@@ -337,11 +350,11 @@ void service_client(msl::socket& client,const std::string& message)
 		std::string file;
 
 		//Load File
-		if(msl::file_to_string(web_root+"/"+request,file))
-			client<<msl::http_pack_string(file,mime_type);
+		if(msl::file_to_string(web_root+request,file,true))
+			client<<msl::http_pack_string(file,mime_type,false);
 
 		//Bad File
-		else if(msl::file_to_string(web_root+"/not_found.html",file))
+		else if(msl::file_to_string(web_root+"/not_found.html",file,true))
 			client<<msl::http_pack_string(file);
 
 		//Close Connection
