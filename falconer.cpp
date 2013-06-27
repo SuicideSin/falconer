@@ -149,7 +149,7 @@ bool ardrone::connect(unsigned int time_out)
 		++_count;
 		_control_socket<<altitude_max_command;
 
-		unsigned int timer=msl::millis()+1000;
+		long timer=msl::millis()+1000;
 		char redirect_navdata_command[14]={1,0,0,0,0,0,0,0,0,0,0,0,0,0};
 		char video_wakeup_command[1]={1};
 
