@@ -1,0 +1,16 @@
+To compile from source:
+	Windows:	Run make.bat.
+	Linux/Mac:	Run make.
+
+To run start it up from the command line like so (in bin folder):
+	Windows:	falconer.exe
+	Linux/Mac:	./falconer
+
+You can also run by double clicking "bin/falconer.exe".
+
+Controls
+	WS			Pitch (Forward/Backward)
+	AD			Roll (Left/Right)
+	QE			Yaw (Rotation)
+	R			Emergency Mode Toggle
+	Space		Takeoff/Land
