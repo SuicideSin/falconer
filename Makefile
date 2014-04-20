@@ -1,7 +1,7 @@
-MSL=src/msl/2d.cpp src/msl/2d_util.cpp src/msl/font.cpp src/msl/glut_input.cpp src/msl/socket.cpp src/msl/socket_util.cpp src/msl/sprite.cpp src/msl/string_util.cpp src/msl/time_util.cpp
+MSL=src/msl/2d.cpp src/msl/2d_util.cpp src/msl/glut_input.cpp src/msl/socket.cpp src/msl/socket_util.cpp src/msl/sprite.cpp src/msl/string_util.cpp src/msl/time_util.cpp
 SRC=src/example.cpp src/falconer.cpp $(MSL)
-OPTS=-O -Wall
-LIB=-lGL -lGLU -lGLEW -lglui -lglut -lSOIL -lavcodec -lswscale -lavutil
+OPTS=-O -Wall -I/usr/include/freetype2
+LIB=-lGL -lGLU -lGLEW -lglut -lSOIL -lavcodec -lswscale -lavutil -lftgl
 COMPILER=g++
 OUT=bin
 

@@ -1,9 +1,9 @@
 //Web Server Source
 //	Created By:		Mike Moss
-//	Modified On:	09/24/2013
+//	Modified On:	04/11/2014
 
 //Required Libraries:
-//	wsock32 (windows only)
+//	Ws2_32 (windows only)
 
 //Definitions for "webserver.hpp"
 #include "webserver.hpp"
@@ -19,6 +19,9 @@
 
 //String Utility Header
 #include "string_util.hpp"
+
+//Time Utility Header
+#include "time_util.hpp"
 
 //Constructor (Default)
 msl::webserver::webserver(const std::string& address,bool(*user_service_client)(msl::socket& client,const std::string& message),
@@ -108,7 +111,7 @@ void msl::webserver::update()
 
 
 	//Give OS a Break
-	usleep(0);
+	msl::nsleep(1000000);
 }
 
 //Close Function (Closes Server)
@@ -129,20 +132,23 @@ void msl::webserver::close()
 //Service Client Function Definition
 void msl::webserver::service_client(msl::socket& client,const std::string& message)
 {
-	//Get Requests
-	if(msl::starts_with(message,"GET"))
+	//If User Options Fail
+	if(_user_service_client==NULL||!_user_service_client(client,message))
 	{
-		//Create Parser
-		std::istringstream istr(msl::http_to_ascii(message));
-
-		//Parse the Request
-		std::string request;
-		istr>>request;
-		istr>>request;
-
-		//If User Options Fail
-		if(_user_service_client==NULL||!_user_service_client(client,msl::http_to_ascii(message)))
+		//Get Requests
+		if(msl::starts_with(message,"GET"))
 		{
+			//Create Parser
+			std::istringstream istr(message);
+
+			//Parse the Request
+			std::string request;
+			istr>>request;
+			istr>>request;
+
+			//Translate Request
+			request=msl::http_to_ascii(request);
+
 			//Check for Index
 			if(request=="/")
 				request="/index.html";
@@ -198,11 +204,11 @@ void msl::webserver::service_client(msl::socket& client,const std::string& messa
 				client.write(response_str.c_str(),response_str.size());
 			}
 		}
-	}
 
-	//Other Requests (Just kill connection...it's either hackers or idiots...)
-	else
-	{
+		//Other Requests (Just kill connection...it's either hackers or idiots...)
+		else
+		{
 			client.close();
+		}
 	}
 }

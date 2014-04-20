@@ -1,6 +1,6 @@
 //Serial Header
 //	Created By:		Mike Moss
-//	Modified On:	05/20/2013
+//	Modified On:	04/20/2014
 
 //Begin Define Guards
 #ifndef MSL_SERIAL_H
@@ -30,8 +30,8 @@
 //MSL Namespace
 namespace msl
 {
-	//Socket Class Declaration (NOT SURE IF BEING A STD::OSTREAM CHILD IS THE WAY TO GO HERE)
-	class serial:public std::ostream
+	//Serial Class Declaration
+	class serial
 	{
 		public:
 			//Constructor (Default)
@@ -62,16 +62,14 @@ namespace msl
 			int available() const;
 
 			//Read Function (Returns Number of Bytes Read, -1 on Error)
-			int read(void* buffer,const unsigned int size);
+			int read(void* buffer,const unsigned int size,const unsigned int time_out=0);
 
 			//Write Function (Returns Number of Bytes Sent, -1 on Error)
-			int write(void* buffer,const unsigned int size);
-
-			//Connection Timeout Mutator
-			void set_timeout(const long time_out);
+			int write(const void* buffer,const unsigned int size,const unsigned int time_out=0);
+			int write(const std::string& str,const unsigned int time_out=0);
 
 			//Connection Timeout Accessor
-			long timeout() const;
+			unsigned long timeout() const;
 
 			//System Port Accessor
 			SERIAL system_port() const;
@@ -84,24 +82,8 @@ namespace msl
 			SERIAL _port;
 			std::string _name;
 			unsigned int _baud;
-			long _time_out;
+			unsigned long _time_out;
 	};
-
-	//Serial Class Stream Operator (Templated Function)
-	template <typename T> msl::serial& operator<<(msl::serial& lhs,const T& rhs)
-	{
-		//Create a String Stream
-		std::ostringstream ostr;
-
-		//Put in Data
-		ostr<<rhs;
-
-		//Write Data
-		lhs.write(reinterpret_cast<void*>(const_cast<char*>(ostr.str().c_str())),ostr.str().size());
-
-		//Return Stream
-		return lhs;
-	}
 
 	//Serial Connection Function (Connects to a Port)
 	SERIAL serial_connect(const std::string& name,const unsigned int baud);
@@ -110,13 +92,13 @@ namespace msl
 	SERIAL serial_close(const SERIAL port);
 
 	//Serial Available Function (Checks if there are Bytes to be Read, -1 on Error)
-	int serial_available(const SERIAL port,const long time_out=0);
+	int serial_available(const SERIAL port,const unsigned long time_out=0);
 
 	//Serial Read Function (Returns Number of Bytes Read, -1 on Error)
-	int serial_read(const SERIAL port,void* buffer,const unsigned int size,const long time_out=200);
+	int serial_read(const SERIAL port,void* buffer,const unsigned int size,const unsigned long time_out=0);
 
 	//Serial Write Function (Returns Number of Bytes Sent, -1 on Error)
-	int serial_write(const SERIAL port,void* buffer,const unsigned int size,const long time_out=200);
+	int serial_write(const SERIAL port,const void* buffer,const unsigned int size,const unsigned long time_out=0);
 }
 
 //End Define Guards

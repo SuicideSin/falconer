@@ -1,3 +1,13 @@
+//Falconer Example Source
+//	Created By:		Mike Moss
+//	Modified On:	04/20/2014
+
+//Required Libraries:
+//	gl
+//	glew
+//	glu
+//	glut/freeglut
+
 #include <iostream>
 #include "msl/socket.hpp"
 #include "msl/string_util.hpp"
@@ -24,6 +34,9 @@ int main()
 
 void setup()
 {
+	msl::set_text_font("verdana.ttf");
+	msl::set_text_size(12);
+
 	glGenTextures(1,&textureId);
 
 	if(a.connect())
@@ -53,6 +66,12 @@ void loop(const double dt)
 	if(msl::input_check_pressed(kb_r))
 		a.emergency_mode_toggle();
 
+	if(msl::input_check_pressed(kb_1))
+		a.set_video_feed_front();
+
+	if(msl::input_check_pressed(kb_2))
+		a.set_video_feed_bottom();
+
 	if(msl::input_check(kb_w))
 		pitch=-speed;
 
@@ -77,13 +96,11 @@ void loop(const double dt)
 	if(msl::input_check(kb_down))
 		altitude=-speed;
 
+	if(msl::input_check_pressed(kb_t))
+		a.takeoff();
+
 	if(msl::input_check_pressed(kb_space))
-	{
-		if(a.flying())
-			a.land();
-		else
-			a.takeoff();
-	}
+		a.land();
 
 	a.manuever(altitude,pitch,roll,yaw);
 

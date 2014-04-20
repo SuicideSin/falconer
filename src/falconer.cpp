@@ -1,3 +1,12 @@
+//Falconer Source
+//	Created By:		Mike Moss
+//	Modified On:	04/20/2014
+
+//Required Libraries:
+//	avcodec
+//	avutil
+//	swscale
+
 #include "falconer.hpp"
 
 #include "msl/string_util.hpp"
@@ -117,7 +126,7 @@ bool ardrone::connect(unsigned int time_out)
 
 	if(good())
 	{
-		long timer=msl::millis()+1000;
+		unsigned long timer=msl::millis()+1000;
 		char redirect_navdata_command[14]={1,0,0,0,0,0,0,0,0,0,0,0,0,0};
 		char video_wakeup_command[1]={1};
 
@@ -125,39 +134,39 @@ bool ardrone::connect(unsigned int time_out)
 
 		std::string initialize_command="AT*FTRIM="+msl::to_string(_count)+"\r";
 		++_count;
-		_control_socket<<initialize_command;
+		_control_socket.write(initialize_command);
 
 		std::string outdoor_hull_command="AT*CONFIG="+msl::to_string(_count)+",\"control:outdoor\",\"FALSE\"\r";
 		++_count;
-		_control_socket<<outdoor_hull_command;
+		_control_socket.write(outdoor_hull_command);
 
 		std::string shell_is_on_command="AT*CONFIG="+msl::to_string(_count)+",\"control:flight_without_shell\",\"FALSE\"\r";
 		++_count;
-		_control_socket<<shell_is_on_command;
+		_control_socket.write(shell_is_on_command);
 
 		std::string motor_type_command="AT*CONFIG="+msl::to_string(_count)+",\"control:brushless\",\"TRUE\"\r";
 		++_count;
-		_control_socket<<motor_type_command;
+		_control_socket.write(motor_type_command);
 
 		std::string navdata_enable_command="AT*CONFIG="+msl::to_string(_count)+",\"general:navdata_demo\",\"FALSE\"\r";
 		++_count;
-		_control_socket<<navdata_enable_command;
+		_control_socket.write(navdata_enable_command);
 
 		std::string navdata_send_all_command="AT*CONFIG="+msl::to_string(_count)+",\"general:navdata_options\",\"65537\"\r";
 		++_count;
-		_control_socket<<navdata_send_all_command;
+		_control_socket.write(navdata_send_all_command);
 
 		std::string watchdog_command="AT*COMWDG="+msl::to_string(_count)+"\r";
 		++_count;
-		_control_socket<<watchdog_command;
+		_control_socket.write(watchdog_command);
 
 		std::string altitude_min_command="AT*CONFIG="+msl::to_string(_count)+",\"control:altitude_min\",\"10\"\r";
 		++_count;
-		_control_socket<<altitude_min_command;
+		_control_socket.write(altitude_min_command);
 
 		std::string altitude_max_command="AT*CONFIG="+msl::to_string(_count)+",\"control:altitude_max\",\"4000\"\r";
 		++_count;
-		_control_socket<<altitude_max_command;
+		_control_socket.write(altitude_max_command);
 
 		while(msl::millis()<timer&&!good());
 		{
@@ -262,7 +271,7 @@ void ardrone::land()
 		int land_flags=1<<18|1<<20|1<<22|1<<24|1<<28;
 		std::string command="AT*REF="+msl::to_string(_count)+","+msl::to_string(land_flags)+"\r";
 		++_count;
-		_control_socket<<command;
+		_control_socket.write(command);
 	}
 }
 
@@ -273,7 +282,7 @@ void ardrone::emergency_mode_toggle()
 		int emergency_flags=1<<8|1<<18|1<<20|1<<22|1<<24|1<<28;
 		std::string command="AT*REF="+msl::to_string(_count)+","+msl::to_string(emergency_flags)+"\r";
 		++_count;
-		_control_socket<<command;
+		_control_socket.write(command);
 	}
 }
 
@@ -284,7 +293,7 @@ void ardrone::takeoff()
 		int takeoff_flags=1<<9|1<<18|1<<20|1<<22|1<<24|1<<28;
 		std::string command="AT*REF="+msl::to_string(_count)+","+msl::to_string(takeoff_flags)+"\r";
 		++_count;
-		_control_socket<<command;
+		_control_socket.write(command);
 	}
 }
 
@@ -295,7 +304,7 @@ void ardrone::manuever(const float altitude,const float pitch,const float roll,c
 		std::string command="AT*PCMD="+msl::to_string(_count)+",1,"+msl::to_string(*(int*)(&roll))+","+msl::to_string(*(int*)(&pitch))
 			+","+msl::to_string(*(int*)(&altitude))+","+msl::to_string(*(int*)(&yaw))+"\r";
 		++_count;
-		_control_socket<<command;
+		_control_socket.write(command);
 	}
 }
 
@@ -305,7 +314,7 @@ void ardrone::hover()
 	{
 		std::string command="AT*PCMD="+msl::to_string(_count)+",0,0,0,0,0\r";
 		++_count;
-		_control_socket<<command;
+		_control_socket.write(command);
 	}
 }
 
@@ -315,7 +324,7 @@ void ardrone::set_video_feed_front()
 	{
 		std::string command="AT*CONFIG="+msl::to_string(_count)+",\"video:video_channel\",\"2\"\r";
 		++_count;
-		_control_socket<<command;
+		_control_socket.write(command);
 	}
 }
 
@@ -325,7 +334,7 @@ void ardrone::set_video_feed_bottom()
 	{
 		std::string command="AT*CONFIG="+msl::to_string(_count)+",\"video:video_channel\",\"3\"\r";
 		++_count;
-		_control_socket<<command;
+		_control_socket.write(command);
 	}
 }
 

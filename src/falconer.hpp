@@ -1,3 +1,12 @@
+//Falconer Header
+//	Created By:		Mike Moss
+//	Modified On:	04/20/2014
+
+//Required Libraries:
+//	avcodec
+//	avutil
+//	swscale
+
 #ifndef FALCONER_H
 #define FALCONER_H
 
@@ -9,6 +18,7 @@ extern "C"
 	typedef unsigned long UINT64_C;
 	#include "libavcodec/avcodec.h"
 	#include "libswscale/swscale.h"
+	#include "libavutil/mem.h"
 }
 
 class ardrone

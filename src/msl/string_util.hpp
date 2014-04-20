@@ -1,6 +1,6 @@
 //String Utility Header
 //	Created By:		Mike Moss
-//	Modified On:	03/12/2013
+//	Modified On:	11/17/2013
 
 //Begin Define Guards
 #ifndef MSL_STRING_UTIL_H
@@ -16,7 +16,7 @@
 namespace msl
 {
 	//String Convert Functions
-	bool to_bool(std::string value);
+	bool to_bool(const std::string& value);
 	double to_double(const std::string& value);
 	int to_int(const std::string& value);
 	char to_char(const std::string& value);
@@ -60,6 +60,21 @@ namespace msl
 
 	//Ends With Function (Checks if string ends with another string)
 	bool ends_with(const std::string& str,const std::string& end);
+
+	//To Lower Function (Returns a copy of a string that is all lower case)
+	std::string to_lower(const std::string& str);
+
+	//To Upper Function (Returns a copy of a string that is all upper case)
+	std::string to_upper(const std::string& str);
+
+	//Extract Until Function (Returns a string containing data from the start of the passed string until
+	//	the delimiter is reached).
+	std::string extract_until(const std::string& str,const char until,const bool include_delimiter=false);
+
+	//Extract Between Function (Returns a string containing data between open and close characters.
+	//	Supports different and same open/close characters.)
+	std::string extract_between(const std::string& str,const char open_char,const char close_char,
+		const bool include_delimiters=false);
 }
 
 //End Define Guards
@@ -69,7 +84,7 @@ namespace msl
 /*
 #include <iostream>
 #include <string>
-#include "string_util.hpp"
+#include "msl/string_util.hpp"
 using namespace msl;
 
 int main()
@@ -99,7 +114,11 @@ int main()
 		std::cout<<"\tString starts with \"Hel\""<<std::endl;
 
 	if(ends_with(test,"world!"))
-		std::cout<<"\tString ends with \"rld!\""<<std::endl;
+		std::cout<<"\tString ends with \"rld!\""<<std::endl<<std::endl;
+
+	std::string case_test="hElLo ThErE pArTnEr!";
+	std::cout<<to_lower(case_test)<<std::endl;
+	std::cout<<to_upper(case_test)<<std::endl;
 
 	return 0;
 }

@@ -1,9 +1,9 @@
 //Web Server Header
 //	Created By:		Mike Moss
-//	Modified On:	09/24/2013
+//	Modified On:	04/11/2014
 
 //Required Libraries:
-//	wsock32 (windows only)
+//	Ws2_32 (windows only)
 
 //Begin Define Guards
 #ifndef MSL_WEBSERVER_H
@@ -73,8 +73,14 @@ namespace msl
 //Socket Header
 #include "msl/socket.hpp"
 
+//Socket Utility Header
+#include "msl/socket_util.hpp"
+
 //String Stream Header
 #include <sstream>
+
+//Time Utility Header
+#include "msl/time_util.hpp"
 
 //Web Server Header
 #include "msl/webserver.hpp"
@@ -109,7 +115,7 @@ int main(int argc,char* argv[])
 		server.update();
 
 		//Give OS a Break
-		usleep(0);
+		msl::nsleep(1000000);
 	}
 
 	//Call Me Plz T_T
@@ -126,6 +132,9 @@ bool service_client(msl::socket& client,const std::string& message)
 	std::string request;
 	istr>>request;
 	istr>>request;
+
+	//Translate Request
+	request=msl::http_to_ascii(request);
 
 	//Check For a Custom Request
 	if(request=="/custom_request")

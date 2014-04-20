@@ -1,6 +1,6 @@
 //JSON Header
 //	Created By:		Mike Moss
-//	Modified On:	05/26/2013
+//	Modified On:	11/07/2013
 
 //Begin Define Guards
 #ifndef MSL_JSON_H
@@ -25,7 +25,9 @@ namespace msl
 	class json
 	{
 		public:
-			//Constructor (Default)
+			//Constructor (Default, if error is found json contains only only entry, "error".
+			//	Error is an object containing "what", the error message, and "position",
+			//	the position of the error in the passed string.)
 			json(const std::string& json_string="");
 
 			//Size Accessor (Returns number of variables)
@@ -33,6 +35,9 @@ namespace msl
 
 			//Set Operator (Sets a variable to a value)
 			template<typename T> void set(const std::string& lhs,const T& rhs);
+
+			//Set Operator (Sets a variable to a value) (JSON Version)
+			void set(const std::string& lhs,const json& rhs);
 
 			//Get Operator (Returns variable from an index)
 			std::string get(const unsigned int index);

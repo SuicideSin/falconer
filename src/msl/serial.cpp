@@ -1,6 +1,6 @@
 //Serial Source
 //	Created By:		Mike Moss
-//	Modified On:	05/20/2013
+//	Modified On:	04/20/2014
 
 //Definitions for "serial.hpp"
 #include "serial.hpp"
@@ -63,11 +63,11 @@
 #endif
 
 //Constructor(Default)
-msl::serial::serial(const std::string& name,const unsigned int baud):_port(SERIAL_ERROR),_name(name),_baud(baud),_time_out(200)
+msl::serial::serial(const std::string& name,const unsigned int baud):_port(SERIAL_ERROR),_name(name),_baud(baud)
 {}
 
 //Copy Constructor
-msl::serial::serial(const msl::serial& copy):_port(copy._port),_name(copy._name),_baud(copy._baud),_time_out(copy._time_out)
+msl::serial::serial(const msl::serial& copy):_port(copy._port),_name(copy._name),_baud(copy._baud)
 {}
 
 //Copy Assignment Operator
@@ -78,7 +78,6 @@ msl::serial& msl::serial::operator=(const msl::serial& copy)
 		_port=copy._port;
 		_name=copy._name;
 		_baud=copy._baud;
-		_time_out=copy._time_out;
 	}
 
 	return *this;
@@ -127,27 +126,21 @@ int msl::serial::available() const
 }
 
 //Read Function (Returns -1 on Error Else Returns Number of Bytes Read)
-int msl::serial::read(void* buffer,const unsigned int size)
+int msl::serial::read(void* buffer,const unsigned int size,const unsigned int time_out)
 {
-	return serial_read(_port,buffer,size,_time_out);
+	return serial_read(_port,buffer,size,time_out);
 }
 
 //Write Function (Returns -1 on Error Else Returns Number of Bytes Sent)
-int msl::serial::write(void* buffer,const unsigned int size)
+int msl::serial::write(const void* buffer,const unsigned int size,const unsigned int time_out)
 {
-	return serial_write(_port,buffer,size,_time_out);
+	return serial_write(_port,buffer,size,time_out);
 }
 
-//Connection Timeout Mutator
-void msl::serial::set_timeout(const long time_out)
+//Write String Function (Returns -1 on Error Else Returns Number of Bytes Sent)
+int msl::serial::write(const std::string& str,const unsigned int time_out)
 {
-	_time_out=time_out;
-}
-
-//Connection Timeout Accessor
-long msl::serial::timeout() const
-{
-	return _time_out;
+	return write(str.c_str(),str.size(),time_out);
 }
 
 //System Port Accessor
@@ -214,10 +207,6 @@ SERIAL msl::serial_connect(const std::string& name,const unsigned int baud)
 		//Fix for Linux Errors
 		if(port>1024*1024||port<0)
 			return -1;
-
-		//Set Serial Port to Non-blocking Mode
-		if(fcntl(port,F_SETFL,FNDELAY)==-1)
-			return serial_close(port);
 
 		//Check for Valid Baud Rate
 		speed_t baud_rate;
@@ -297,7 +286,7 @@ SERIAL msl::serial_close(const SERIAL port)
 }
 
 //Serial Available Function (Checks if there are Bytes to be Read, -1 on Error)
-int msl::serial_available(const SERIAL port,const long time_out)
+int msl::serial_available(const SERIAL port,const unsigned long time_out)
 {
 	//Check for Errored Port
 	if(port==SERIAL_ERROR)
@@ -313,7 +302,7 @@ int msl::serial_available(const SERIAL port,const long time_out)
 	int return_value=-1;
 
 	//Reading Variables
-	long time_start=msl::millis();
+	unsigned long time_start=msl::millis();
 
 	//Unix
 	#if(!defined(_WIN32)||defined(__CYGWIN__))
@@ -346,7 +335,7 @@ int msl::serial_available(const SERIAL port,const long time_out)
 }
 
 //Serial Read Function (Returns Number of Bytes Read, -1 on Error)
-int msl::serial_read(const SERIAL port,void* buffer,const unsigned int size,const long time_out)
+int msl::serial_read(const SERIAL port,void* buffer,const unsigned int size,const unsigned long time_out)
 {
 	//Check for Bad Port
 	if(port==SERIAL_ERROR)
@@ -360,7 +349,7 @@ int msl::serial_read(const SERIAL port,void* buffer,const unsigned int size,cons
 
 	//Reading Variables
 	unsigned int bytes_unread=size;
-	long time_start=msl::millis();
+	unsigned long time_start=msl::millis();
 
 	//While Port is Good and There are Bytes to Read
 	do
@@ -386,7 +375,7 @@ int msl::serial_read(const SERIAL port,void* buffer,const unsigned int size,cons
 }
 
 //Serial Write Function (Returns Number of Bytes Sent, -1 on Error)
-int msl::serial_write(const SERIAL port,void* buffer,const unsigned int size,const long time_out)
+int msl::serial_write(const SERIAL port,const void* buffer,const unsigned int size,const unsigned long time_out)
 {
 	//Check for Bad Port
 	if(port==SERIAL_ERROR)
@@ -400,13 +389,13 @@ int msl::serial_write(const SERIAL port,void* buffer,const unsigned int size,con
 
 	//Writing Variables
 	unsigned int bytes_unsent=size;
-	long time_start=msl::millis();
+	unsigned long time_start=msl::millis();
 
 	//While Port is Good and There are Bytes to Send
 	do
 	{
 		//Get Bytes in Send Buffer
-		unsigned int bytes_sent=write(port,reinterpret_cast<char*>(buffer)+(size-bytes_unsent),bytes_unsent);
+		unsigned int bytes_sent=write(port,reinterpret_cast<const char*>(buffer)+(size-bytes_unsent),bytes_unsent);
 
 		//If Bytes Were Sent
 		if(bytes_sent>0)

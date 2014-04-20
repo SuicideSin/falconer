@@ -1,10 +1,10 @@
 //Web Server Threaded Header
 //	Created By:		Mike Moss
-//	Modified On:	10/03/2013
+//	Modified On:	04/11/2014
 
 //Required Libraries:
 // 	pthread
-//	wsock32 (windows only)
+//	Ws2_32 (windows only)
 
 //Begin Define Guards
 #ifndef MSL_WEBSERVER_THREADED_H
@@ -51,11 +51,18 @@ namespace msl
 			//Close Function (Closes Server)
 			void close();
 
+			//Max Size Accessor (Accesses max upload size, in bytes.  Default is 200 MB.)
+			unsigned int get_max_upload_size() const;
+
+			//Max Size Mutator (Changes max upload size, in bytes.  Default is 200 MB.)
+			void set_max_upload_size(const unsigned int size);
+
 		private:
 			//Member Variables
 			bool(*_user_service_client)(msl::socket& client,const std::string& message);
 			msl::socket _socket;
 			std::string _web_directory;
+			unsigned long _max_upload_size;
 	};
 }
 
@@ -74,8 +81,14 @@ namespace msl
 //Socket Header
 #include "msl/socket.hpp"
 
+//Socket Utility Header
+#include "msl/socket_util.hpp"
+
 //String Stream Header
 #include <sstream>
+
+//Time Utility Header
+#include "msl/time_util.hpp"
 
 //Web Server Threaded Header
 #include "msl/webserver_threaded.hpp"
@@ -110,7 +123,7 @@ int main(int argc,char* argv[])
 		server.update();
 
 		//Give OS a Break
-		usleep(0);
+		msl::nsleep(1000000);
 	}
 
 	//Call Me Plz T_T
@@ -127,6 +140,9 @@ bool service_client(msl::socket& client,const std::string& message)
 	std::string request;
 	istr>>request;
 	istr>>request;
+
+	//Translate Request
+	request=msl::http_to_ascii(request);
 
 	//Check For a Custom Request
 	if(request=="/custom_request")

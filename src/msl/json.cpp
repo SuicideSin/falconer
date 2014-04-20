@@ -1,6 +1,6 @@
 //JSON Source
 //	Created By:		Mike Moss
-//	Modified On:	05/26/2013
+//	Modified On:	11/07/2013
 
 //Definitions for "json.hpp"
 #include "json.hpp"
@@ -11,170 +11,299 @@ std::ostream& operator<<(std::ostream& lhs,const msl::json& rhs)
 	return (lhs<<rhs.str());
 }
 
-//Constructor (Default)
+//Constructor (Default, if error is found json contains only only entry, "error".
+//	Error is an object containing "what", the error message, and "position",
+//	the position of the error in the passed string.)
 msl::json::json(const std::string& json_string)
 {
-	//States Enum for State Machine
-	enum state
+	//Error Variables
+	bool error=false;
+	unsigned int error_position=1;
+	std::string error_what="";
+
+	//Get Data Between Brackets
+	std::string temp=msl::extract_between(json_string,'{','}',false);
+
+	//Parse Data
+	while(temp.size()>0)
 	{
-		bracket,
-		quote_a,
-		variable,
-		colon,
-		quote_b,
-		value,
-		comma,
-		done,
-		error
-	};
-
-	//Parsing Variables
-	state parse_state=bracket;
-	std::string parse_variable="";
-	std::string parse_value="";
-	bool skip_whitespace=true;
-
-	//Go Through JSON Sting
-	for(unsigned int ii=0;ii<json_string.size();++ii)
-	{
-		//Skip Whitespace
-		if(skip_whitespace)
+		//Remove Whitespace
+		while(temp.size()>0&&isspace(temp[0]))
 		{
-			while(ii<json_string.size()&&(json_string[ii]==' '||json_string[ii]=='\t'||json_string[ii]=='\r'||json_string[ii]=='\n'))
-				++ii;
-
-			skip_whitespace=false;
+			temp.erase(0,1);
+			++error_position;
 		}
 
-		//Look For Opening Bracket
-		if(parse_state==bracket)
-		{
-			//Default Error
-			parse_state=error;
+		//Variable Name Variable
+		std::string var;
 
-			//Found, Look For Opening Quote (Variable)
-			if(json_string[ii]=='{')
-			{
-				parse_state=quote_a;
-				skip_whitespace=true;
-			}
+		//Get Variable Name (With "")
+		if(temp[0]=='\"')
+		{
+			var=msl::extract_between(temp,'\"','\"',true);
+			temp.erase(0,var.size());
+			var=msl::extract_between(var,'\"','\"',false);
 		}
 
-		//Look For Opening Quote (Variable)
-		else if(parse_state==quote_a)
+		//Get Variable Name (With '')
+		else if(temp[0]=='\'')
 		{
-			//Default Error
-			parse_state=error;
-
-			//Found, Look For Variable
-			if(json_string[ii]=='\"')
-			{
-				parse_state=variable;
-				parse_variable="";
-			}
+			var=msl::extract_between(temp,'\'','\'',true);
+			temp.erase(0,var.size());
+			var=msl::extract_between(var,'\'','\'',false);
 		}
 
+		//Update Error Postion
+		++error_position;
 
-		//Look For Variable
-		else if(parse_state==variable)
+		//Bad Variable Name
+		if(var=="")
 		{
-			//Found End Quote Without a Trailing Slash, Look For Colon
-			if(json_string[ii]=='\"'&&ii>0&&json_string[ii-1]!='\\')
+			error_what="bad variable name";
+			error=true;
+			break;
+		}
+
+		//Update Error Position
+		error_position+=var.size();
+		++error_position;
+
+		//Remove Whitespace
+		while(temp.size()>0&&isspace(temp[0]))
+		{
+			temp.erase(0,1);
+			++error_position;
+		}
+
+		//Remove Colon
+		if(temp.size()>0&&temp[0]==':')
+		{
+			temp.erase(0,1);
+			++error_position;
+		}
+
+		//No Colon, Error
+		else
+		{
+			error_what="colon expected";
+			error=true;
+			break;
+		}
+
+		//Remove Whitespace
+		while(temp.size()>0&&isspace(temp[0]))
+		{
+			temp.erase(0,1);
+			++error_position;
+		}
+
+		//Variable Value Variable
+		std::string val="";
+
+		//Check Size
+		if(temp.size()>0)
+		{
+			//Extract Object
+			if(temp[0]=='{')
 			{
-				parse_state=colon;
-				skip_whitespace=true;
+				//Get Object
+				val=msl::extract_between(temp,'{','}',true);
+				temp.erase(0,val.size());
+				error_position+=val.size();
 			}
 
-			//Else Add to Variable
+			//Extract String ("" || '')
+			else if(temp[0]=='\"'||temp[0]=='\'')
+			{
+				//Get String
+				val=msl::extract_until(temp,',',false);
+
+				//Check for Commas in Strings
+				while(true)
+				{
+					//Temp Copy of Val
+					std::string check_for_comma_in_string=val;
+
+					//Remove Whitespace At End of String
+					while(check_for_comma_in_string.size()>0&&std::isspace(val[check_for_comma_in_string.size()-1]))
+						check_for_comma_in_string.erase(check_for_comma_in_string.size()-1,1);
+
+					//If Comma Found
+					if(check_for_comma_in_string.size()>0&&check_for_comma_in_string[check_for_comma_in_string.size()-1]!=temp[0])
+					{
+						//Add Comma
+						val+=',';
+
+						//Get Rest of String
+						std::string val_add=msl::extract_until(temp.substr(val.size(),temp.size()-val.size()),',',false);
+
+						//Nothing Found, Break
+						if(val_add.size()==0)
+							break;
+
+						//Add Rest of Value to Value String
+						val+=val_add;
+					}
+
+					//If No Comma, Break
+					else
+					{
+						break;
+					}
+				}
+
+				//Remove Extracted Data
+				temp.erase(0,val.size());
+
+				//Update Error Position
+				error_position+=val.size();
+
+				//Remove Whitespace At End of String
+				while(val.size()>0&&std::isspace(val[val.size()-1]))
+					val.erase(val.size()-1,1);
+
+				//Valid String, Remove Quotes
+				if((val.size()>=2&&val[0]=='\"'&&val[val.size()-1]=='\"')||(val.size()>=2&&val[0]=='\''&&val[val.size()-1]=='\''))
+				{
+					val=val.substr(1,val.size()-2);
+				}
+				//Bad String
+				else
+				{
+					error_what="invalid string";
+					error=true;
+					break;
+				}
+			}
+
+			//Extract Boolean
+			else if(msl::starts_with(msl::to_lower(temp),"true")||msl::starts_with(msl::to_lower(temp),"false"))
+			{
+				//Get Boolean
+				val=msl::to_lower(msl::extract_until(temp,',',false));
+				temp.erase(0,val.size());
+
+				//Keep Old Val Size, For Error Position Later On
+				unsigned int old_val_size=val.size();
+
+				//Remove Whitespace At End of Boolean
+				while(val.size()>0&&std::isspace(val[val.size()-1]))
+					val.erase(val.size()-1,1);
+
+				//Check for Good Boolean
+				if(val=="true"||val=="false")
+				{
+					//Update Error Position
+					error_position+=old_val_size-val.size();
+				}
+
+				//Error
+				else
+				{
+					error_what="invalid variable value";
+					error=true;
+				}
+			}
+
+			//Extract Number
 			else
 			{
-				parse_variable+=json_string[ii];
-			}
-		}
+				//Get Number
+				val=msl::extract_until(temp,',',false);
+				temp.erase(0,val.size());
 
-		//Look For Colon
-		else if(parse_state==colon)
-		{
-			//Default Error
-			parse_state=error;
+				//Keep Old Val Size, For Error Position Later On
+				unsigned int old_val_size=val.size();
 
-			//Found Colon, Look For Opening Quote (Value)
-			if(json_string[ii]==':')
-			{
-				parse_state=quote_b;
-				skip_whitespace=true;
-			}
-		}
+				//Remove Whitespace At End of Number
+				while(val.size()>0&&std::isspace(val[val.size()-1]))
+					val.erase(val.size()-1,1);
 
-		//Look For Opening Quote (Variable)
-		else if(parse_state==quote_b)
-		{
-			//Default Error
-			parse_state=error;
+				//Period Finder
+				bool found_period=false;
 
-			//Found, Look For Value
-			if(json_string[ii]=='\"')
-			{
-				parse_state=value;
-				parse_value="";
-			}
-		}
+				//Check for Valid Number
+				for(unsigned int ii=0;ii<val.size();++ii)
+				{
+					//Non-Number or Period or Mutiple Periods
+					if((!std::isdigit(val[ii])&&val[ii]!='.'&&val[ii]!='-')||
+						(val[ii]=='.'&&found_period)||((val[ii]=='-'&&ii!=0)))
+					{
+						error_what="invalid variable value";
+						error=true;
+						break;
+					}
 
-		//Look For Variable
-		else if(parse_state==value)
-		{
-			//Found End Quote Without a Trailing Slash, Look For Comma
-			if(json_string[ii]=='\"'&&ii>0&&json_string[ii-1]!='\\')
-			{
-				set(parse_variable,parse_value);
-				parse_state=comma;
-				skip_whitespace=true;
+					//Look for Multiple Periods
+					if(val[ii]=='.')
+						found_period=true;
+
+					//Update Error Position
+					++error_position;
+				}
+
+				//Update Error Position
+				error_position+=old_val_size-val.size();
 			}
 
-			//Else Add to Value
-			else
+			//Remove Whitespace
+			while(temp.size()>0&&isspace(temp[0]))
 			{
-				parse_value+=json_string[ii];
-			}
-		}
-
-		//Look For Comma
-		else if(parse_state==comma)
-		{
-			//Default Error
-			parse_state=error;
-
-			//Found Comma, Look For Opening Quote (Variable)
-			if(json_string[ii]==',')
-			{
-				parse_state=quote_a;
-				skip_whitespace=true;
+				temp.erase(0,1);
+				++error_position;
 			}
 
-			//Else Found Closing Bracket, Exit
-			else if(json_string[ii]=='}')
+			//Remove Comma
+			if(temp.size()>0&&temp[0]==',')
 			{
-				parse_state=done;
+				temp.erase(0,1);
+				++error_position;
+			}
+
+			//No Comma, Error
+			else if(temp.size()>0)
+			{
+				error_what="comma expected";
+				error=true;
 				break;
 			}
 		}
 
-		//Found Error, Break
+		//On Error
 		else
 		{
-			break;
+			error_what="unexpected end of object";
+			error=true;
 		}
+
+		//Add Variable
+		set(var,val);
 	}
 
-	//If Error, Clear Variables
-	if(parse_state!=done)
+	//On Errors
+	if(error)
+	{
+		//Clear Data
 		_data.clear();
+
+		//Create and Set Error Object
+		msl::json error_object;
+		error_object.set("what",error_what);
+		error_object.set("position",error_position);
+		set("error",error_object);
+	}
 }
 
 //Size Accessor (Returns number of variables)
 unsigned int msl::json::size() const
 {
 	return _data.size();
+}
+
+//Set Operator (Sets a variable to a value) (JSON Version)
+void msl::json::set(const std::string& lhs,const json& rhs)
+{
+	set(lhs,rhs.str());
 }
 
 //Get Operator (Returns variable from an index)
@@ -216,11 +345,9 @@ std::string msl::json::str() const
 		//Add Variable to String
 		json_string+="\""+ii->first+"\":";
 
-		//Check for JSON Object Value
-		if(msl::starts_with(ii->second,"{")&&msl::ends_with(ii->second,"}"))
+		//Add Value to String
+		if(ii->second.size()>0&&ii->second[0]=='{')
 			json_string+=ii->second;
-
-		//Other Data Value
 		else
 			json_string+="\""+ii->second+"\"";
 

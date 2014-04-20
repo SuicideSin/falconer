@@ -1,10 +1,10 @@
 //Web Server Threaded Source
 //	Created By:		Mike Moss
-//	Modified On:	10/03/2013
+//	Modified On:	04/11/2014
 
 //Required Libraries:
 // 	pthread
-//	wsock32 (windows only)
+//	Ws2_32 (windows only)
 
 //Definitions for "webserver_threaded.hpp"
 #include "webserver_threaded.hpp"
@@ -21,6 +21,9 @@
 //String Utility Header
 #include "string_util.hpp"
 
+//Time Utility Header
+#include "time_util.hpp"
+
 //Thread Argument Passing Container
 class client_thread_arg
 {
@@ -28,25 +31,29 @@ class client_thread_arg
 		msl::socket socket;
 		std::string web_directory;
 		bool(*user_service_client)(msl::socket& client,const std::string& message);
+		unsigned int max_upload_size;
 };
 
 //Static Global Service Client Function
 void service_client(msl::socket client,const std::string&message,const std::string web_directory,bool(*user_service_client)(msl::socket& client,const std::string& message))
 {
-	//Get Requests
-	if(msl::starts_with(message,"GET"))
+	//If User Options Fail
+	if(user_service_client==NULL||!user_service_client(client,message))
 	{
-		//Create Parser
-		std::istringstream istr(msl::http_to_ascii(message));
-
-		//Parse the Request
-		std::string request;
-		istr>>request;
-		istr>>request;
-
-		//If User Options Fail
-		if(user_service_client==NULL||!user_service_client(client,msl::http_to_ascii(message)))
+		//Get Requests
+		if(msl::starts_with(message,"GET"))
 		{
+			//Create Parser
+			std::istringstream istr(message);
+
+			//Parse the Request
+			std::string request;
+			istr>>request;
+			istr>>request;
+
+			//Translate Request
+			request=msl::http_to_ascii(request);
+
 			//Check for Index
 			if(request=="/")
 				request="/index.html";
@@ -102,12 +109,12 @@ void service_client(msl::socket client,const std::string&message,const std::stri
 				client.write(response_str.c_str(),response_str.size(),120000);
 			}
 		}
-	}
 
-	//Other Requests (Just kill connection...it's either hackers or idiots...)
-	else
-	{
+		//Other Requests (Just kill connection...it's either hackers or idiots...)
+		else
+		{
 			client.close();
+		}
 	}
 }
 
@@ -127,7 +134,7 @@ static void* client_thread(void* args)
 		while(true)
 		{
 			//Give OS a Break
-			usleep(0);
+			msl::nsleep(1000000);
 
 			//Temp
 			char byte='\n';
@@ -139,7 +146,7 @@ static void* client_thread(void* args)
 				message+=byte;
 
 				//Check for an End Byte
-				if(msl::ends_with(message,"\r\n\r\n"))
+				if(msl::ends_with(message,"\r\n\r\n")||message.size()>=client_data->max_upload_size)
 				{
 					service_client(client_data->socket,message,client_data->web_directory,
 						client_data->user_service_client);
@@ -165,7 +172,8 @@ static void* client_thread(void* args)
 
 //Constructor (Default)
 msl::webserver_threaded::webserver_threaded(const std::string& address,bool(*user_service_client)(msl::socket& client,const std::string& message),
-	const std::string& web_directory):_user_service_client(user_service_client),_socket(address),_web_directory(web_directory)
+	const std::string& web_directory):_user_service_client(user_service_client),_socket(address),_web_directory(web_directory),
+	_max_upload_size(2*1000000)
 {}
 
 //Boolean Operator (Tests if Server is Good)
@@ -209,6 +217,7 @@ void msl::webserver_threaded::update()
 		new_client_data->socket=client;
 		new_client_data->web_directory=_web_directory;
 		new_client_data->user_service_client=_user_service_client;
+		new_client_data->max_upload_size=get_max_upload_size();
 
 		//Create Thread
 		if(pthread_create(&new_client_thread,NULL,&client_thread,(void*)new_client_data)==0)
@@ -220,11 +229,23 @@ void msl::webserver_threaded::update()
 	}
 
 	//Give OS a Break
-	usleep(0);
+	msl::nsleep(1000000);
 }
 
 //Close Function (Closes Server) (Warning!!!  This doesn't close all the threads, there is no way to kill a running joined thread in C++11...yet...)
 void msl::webserver_threaded::close()
 {
 	_socket.close();
+}
+
+//Max Size Accessor (Accesses max upload size, in bytes.  Default is 200 MB.)
+unsigned int msl::webserver_threaded::get_max_upload_size() const
+{
+	return _max_upload_size;
+}
+
+//Max Size Mutator (Changes max upload size, in bytes.  Default is 200 MB.)
+void msl::webserver_threaded::set_max_upload_size(const unsigned int size)
+{
+	_max_upload_size=size;
 }
