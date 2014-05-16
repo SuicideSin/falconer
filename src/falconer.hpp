@@ -24,23 +24,39 @@ extern "C"
 class ardrone
 {
 	public:
-		ardrone(const std::string ip="192.168.1.1");
+		ardrone(const std::string ip="192.168.1.1",const unsigned short control_port=5556,const unsigned short navdata_port=5554,const unsigned short video_port=5555);
 		~ardrone();
+
 		operator bool() const;
 		bool good() const;
 		bool control_good() const;
 		bool navdata_good() const;
 		bool video_good() const;
-		bool connect(unsigned int time_out=1);
+
+		//In milliseconds.
+		bool connect(unsigned int time_out=1000);
+
 		void navdata_update();
 		void video_update();
+
 		void land();
 		void emergency_mode_toggle();
 		void takeoff();
 		void manuever(const float altitude,const float pitch,const float roll,const float yaw);
 		void hover();
+
+		void set_level();
+		void set_outdoor_mode(const bool outdoor);
+		void set_using_shell(const bool on);
+		void set_using_brushless_motors(const bool brushless);
+
+		//In mm.
+		void set_min_altitude(const int min);
+		void set_max_altitude(const int max);
+
 		void set_video_feed_front();
 		void set_video_feed_bottom();
+
 		unsigned int battery_percent() const;
 		bool flying() const;
 		bool emergency_mode() const;
@@ -71,7 +87,6 @@ class ardrone
 		float _roll;
 		float _yaw;
 		int _altitude;
-		bool _found_codec;
 		uint8_t* _camera_data;
 		AVPacket _av_packet;
 		AVCodec* _av_codec;

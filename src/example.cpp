@@ -42,6 +42,13 @@ void setup()
 	if(a.connect())
 	{
 		std::cout<<":)"<<std::endl;
+
+		a.set_level();
+		a.set_outdoor_mode(false);
+		a.set_using_shell(false);
+		a.set_using_brushless_motors(true);
+		a.set_min_altitude(50);
+		a.set_max_altitude(1000);
 	}
 	else
 	{
@@ -152,5 +159,5 @@ void draw()
 	else
 		data+="Landed\n";
 
-	msl::draw_text(-msl::window_width/2.0,msl::window_height/2.0,data);
+	msl::draw_text(-msl::window_width/2.0,msl::window_height/2.0-100,data);
 }

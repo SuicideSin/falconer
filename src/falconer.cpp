@@ -7,12 +7,19 @@
 //	avutil
 //	swscale
 
+//Definitions for "falconer.hpp"
 #include "falconer.hpp"
 
-#include "msl/string_util.hpp"
+//Exceptions Header
+#include <stdexcept>
 
+//C String Header
 #include <string.h>
 
+//String Utility Header
+#include "msl/string_util.hpp"
+
+//Time Utitilit Header
 #include "msl/time_util.hpp"
 
 //https://github.com/elliotwoods/ARDrone-GStreamer-test/blob/master/plugin/src/pave.h
@@ -45,35 +52,66 @@ struct parrot_video_encapsulation_t
 	uint8_t reserved3[12];					/* Padding to align on 64 bytes */
 };
 
-ardrone::ardrone(const std::string ip):_count(1),_control_socket(ip+":5556"),_navdata_socket(ip+":5554"),_video_socket(ip+":5555"),
-	_battery_percent(0),_landed(true),_emergency_mode(false),_low_battery(false),_ultrasonic_enabled(false),_video_enabled(false),
-	_motors_good(false),_pitch(0),_roll(0),_yaw(0),_altitude(0),_found_codec(true)
+ardrone::ardrone(const std::string ip,const unsigned short control_port,const unsigned short navdata_port,const unsigned short video_port):
+	_count(1),
+	_control_socket(ip+":"+msl::to_string(control_port)),
+	_navdata_socket(ip+":"+msl::to_string(navdata_port)),
+	_video_socket(ip+":"+msl::to_string(video_port)),
+	_battery_percent(0),
+	_landed(true),
+	_emergency_mode(false),
+	_low_battery(false),
+	_ultrasonic_enabled(false),
+	_video_enabled(false),
+	_motors_good(false),
+	_pitch(0),_roll(0),_yaw(0),_altitude(0)/*,
+	_outdoor_mode(false),
+	_using_shell(true),
+	_brushless_motors(true),
+	_min_altitude(50),
+	_max_altitude(1000)*/
 {
+	//Hide Libav debug output...can't really print anything else...
 	av_log_set_level(AV_LOG_QUIET);
 
+	//Allocate camera data and clear to zero.
 	_camera_data=new uint8_t[640*368*3];
 	memset(_camera_data,0,640*368*3);
 
+	//Register all the codecs, parsers and bitstream filters which were enabled at configuration time...
 	avcodec_register_all();
 
+	//Initialize codec frame packets and buffers.
 	memset(&_av_packet,0,sizeof(_av_packet));
 	av_init_packet(&_av_packet);
 	_av_packet.data=new uint8_t[100000];
 	memset(_av_packet.data,0,100000);
 
+	//Find a codec.
 	_av_codec=avcodec_find_decoder(CODEC_ID_H264);
 
+	//Failed to find codec, cleanup and throw.
 	if(!_av_codec)
-		_found_codec=false;
-
-	if(_found_codec)
 	{
-		_av_context=avcodec_alloc_context3(_av_codec);
-		_av_camera_cmyk=avcodec_alloc_frame();
-		_av_camera_rgb=avcodec_alloc_frame();
+		delete[] _camera_data;
+		delete[] _av_packet.data;
+		throw std::runtime_error("ardrone::ardrone() - Could not find a video decoder (CODEC_ID_H264)!");
+	}
 
-		if(avcodec_open2(_av_context,_av_codec,NULL)<0)
-			_found_codec=false;
+	//Found codec, allocate frame data.
+	_av_context=avcodec_alloc_context3(_av_codec);
+	_av_camera_cmyk=avcodec_alloc_frame();
+	_av_camera_rgb=avcodec_alloc_frame();
+
+	//Open codec, on failure, cleanup and throw.
+	if(avcodec_open2(_av_context,_av_codec,NULL)<0)
+	{
+		delete[] _camera_data;
+		avcodec_close(_av_context);
+		av_free(_av_context);
+		av_free(_av_camera_cmyk);
+		av_free(_av_camera_rgb);
+		delete[] _av_packet.data;
 	}
 }
 
@@ -112,11 +150,12 @@ bool ardrone::navdata_good() const
 
 bool ardrone::video_good() const
 {
-	return (_video_socket&&_found_codec);
+	return _video_socket;
 }
 
 bool ardrone::connect(unsigned int time_out)
 {
+	//Connect to sockets.
 	if(!good())
 	{
 		_control_socket.connect_udp();
@@ -124,57 +163,45 @@ bool ardrone::connect(unsigned int time_out)
 		_video_socket.connect_tcp();
 	}
 
+	//Wait a second for the connection to establish...
+	msl::nsleep(1000000000);
+
+	//If connected, set some settings...
 	if(good())
 	{
-		unsigned long timer=msl::millis()+1000;
-		char redirect_navdata_command[14]={1,0,0,0,0,0,0,0,0,0,0,0,0,0};
-		char video_wakeup_command[1]={1};
-
+		//Reset counter.
 		_count=1;
 
-		std::string initialize_command="AT*FTRIM="+msl::to_string(_count)+"\r";
-		++_count;
-		_control_socket.write(initialize_command);
-
-		std::string outdoor_hull_command="AT*CONFIG="+msl::to_string(_count)+",\"control:outdoor\",\"FALSE\"\r";
-		++_count;
-		_control_socket.write(outdoor_hull_command);
-
-		std::string shell_is_on_command="AT*CONFIG="+msl::to_string(_count)+",\"control:flight_without_shell\",\"FALSE\"\r";
-		++_count;
-		_control_socket.write(shell_is_on_command);
-
-		std::string motor_type_command="AT*CONFIG="+msl::to_string(_count)+",\"control:brushless\",\"TRUE\"\r";
-		++_count;
-		_control_socket.write(motor_type_command);
-
+		//Turn on full navdata packets.
 		std::string navdata_enable_command="AT*CONFIG="+msl::to_string(_count)+",\"general:navdata_demo\",\"FALSE\"\r";
 		++_count;
 		_control_socket.write(navdata_enable_command);
 
+		//Send all navdata options.
 		std::string navdata_send_all_command="AT*CONFIG="+msl::to_string(_count)+",\"general:navdata_options\",\"65537\"\r";
 		++_count;
 		_control_socket.write(navdata_send_all_command);
 
+		//Set the watchdog timer.
 		std::string watchdog_command="AT*COMWDG="+msl::to_string(_count)+"\r";
 		++_count;
 		_control_socket.write(watchdog_command);
 
-		std::string altitude_min_command="AT*CONFIG="+msl::to_string(_count)+",\"control:altitude_min\",\"10\"\r";
-		++_count;
-		_control_socket.write(altitude_min_command);
+		//Create wakeup commands.
+		char redirect_navdata_command[14]={1,0,0,0,0,0,0,0,0,0,0,0,0,0};
+		char video_wakeup_command[1]={1};
 
-		std::string altitude_max_command="AT*CONFIG="+msl::to_string(_count)+",\"control:altitude_max\",\"4000\"\r";
-		++_count;
-		_control_socket.write(altitude_max_command);
+		//Try to connect for time out value.
+		unsigned long timer=msl::millis()+time_out;
 
-		while(msl::millis()<timer&&!good());
+		while(msl::millis()<timer)
 		{
 			if(_navdata_socket.available()<=0)
 				_navdata_socket.write(redirect_navdata_command,14,200);
-
 			if(_video_socket.available()<=0)
 				_video_socket.write(video_wakeup_command,1,200);
+			if(_navdata_socket.available()>0&&_video_socket.available()>0)
+				break;
 		}
 	}
 
@@ -316,6 +343,63 @@ void ardrone::hover()
 		++_count;
 		_control_socket.write(command);
 	}
+}
+
+void ardrone::set_level()
+{
+	std::string initialize_command="AT*FTRIM="+msl::to_string(_count)+"\r";
+	++_count;
+	_control_socket.write(initialize_command);
+}
+
+void ardrone::set_outdoor_mode(const bool outdoor)
+{
+	std::string bool_value="FALSE";
+
+	if(outdoor)
+		bool_value="TRUE";
+
+	std::string outdoor_hull_command="AT*CONFIG="+msl::to_string(_count)+",\"control:outdoor\",\""+bool_value+"\"\r";
+	++_count;
+	_control_socket.write(outdoor_hull_command);
+}
+
+void ardrone::set_using_shell(const bool on)
+{
+	std::string bool_value="FALSE";
+
+	if(on)
+		bool_value="TRUE";
+
+	std::string shell_is_on_command="AT*CONFIG="+msl::to_string(_count)+",\"control:flight_without_shell\",\""+bool_value+"\"\r";
+	++_count;
+	_control_socket.write(shell_is_on_command);
+}
+
+void ardrone::set_using_brushless_motors(const bool brushless)
+{
+	std::string bool_value="FALSE";
+
+	if(brushless)
+		bool_value="TRUE";
+
+	std::string motor_type_command="AT*CONFIG="+msl::to_string(_count)+",\"control:brushless\",\""+bool_value+"\"\r";
+	++_count;
+	_control_socket.write(motor_type_command);
+}
+
+void ardrone::set_min_altitude(const int min)
+{
+	std::string altitude_min_command="AT*CONFIG="+msl::to_string(_count)+",\"control:altitude_min\",\""+msl::to_string(min)+"\"\r";
+	++_count;
+	_control_socket.write(altitude_min_command);
+}
+
+void ardrone::set_max_altitude(const int max)
+{
+	std::string altitude_max_command="AT*CONFIG="+msl::to_string(_count)+",\"control:altitude_max\",\""+msl::to_string(max)+"\"\r";
+	++_count;
+	_control_socket.write(altitude_max_command);
 }
 
 void ardrone::set_video_feed_front()
