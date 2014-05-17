@@ -163,7 +163,7 @@ bool ardrone::connect(unsigned int time_out)
 		_video_socket.connect_tcp();
 	}
 
-	//Wait a second for the connection to establish...
+	//Wait 1 second for the connection to establish...
 	msl::nsleep(1000000000);
 
 	//If connected, set some settings...
@@ -173,12 +173,14 @@ bool ardrone::connect(unsigned int time_out)
 		_count=1;
 
 		//Turn on full navdata packets.
-		std::string navdata_enable_command="AT*CONFIG="+msl::to_string(_count)+",\"general:navdata_demo\",\"FALSE\"\r";
+		std::string navdata_enable_command="AT*CONFIG="+msl::to_string(_count)+
+			",\"general:navdata_demo\",\"FALSE\"\r";
 		++_count;
 		_control_socket.write(navdata_enable_command);
 
 		//Send all navdata options.
-		std::string navdata_send_all_command="AT*CONFIG="+msl::to_string(_count)+",\"general:navdata_options\",\"65537\"\r";
+		std::string navdata_send_all_command="AT*CONFIG="+msl::to_string(_count)+
+			",\"general:navdata_options\",\"65537\"\r";
 		++_count;
 		_control_socket.write(navdata_send_all_command);
 
@@ -187,11 +189,23 @@ bool ardrone::connect(unsigned int time_out)
 		++_count;
 		_control_socket.write(watchdog_command);
 
+		//Set the video codec.
+		std::string video_codec_command="AT*CONFIG="+msl::to_string(_count)+
+			",\"video:video_codec\",\"P264_CODEC\"\r";
+		++_count;
+		_control_socket.write(video_codec_command);
+
+		//Set the video codec speed.
+		std::string video_codec_speed_command="AT*CONFIG="+msl::to_string(_count)+
+			",\"video:codec_fps\",\"30\"\r";
+		++_count;
+		_control_socket.write(video_codec_speed_command);
+
 		//Create wakeup commands.
 		char redirect_navdata_command[14]={1,0,0,0,0,0,0,0,0,0,0,0,0,0};
 		char video_wakeup_command[1]={1};
 
-		//Try to connect for time out value.
+		//Try to connect to navdata and video until time out value.
 		unsigned long timer=msl::millis()+time_out;
 
 		while(msl::millis()<timer)
@@ -217,9 +231,14 @@ void ardrone::navdata_update()
 
 		if(_navdata_socket.available()>0&&_navdata_socket.read(byte,packet_size,200)==packet_size)
 		{
-			if(byte[0]==0x88&&byte[1]==0x77&&byte[2]==0x66&&byte[3]==0x55)
+			unsigned int packet_header;
+			memcpy(&packet_header,byte,4);
+
+			if(packet_header==0x55667788)
 			{
-				unsigned int states=byte[7]<<24|byte[6]<<16|byte[5]<<8|byte[4]<<0;
+				unsigned int states=0;
+				memcpy(&states,byte+4,4);
+
 				_landed=!static_cast<bool>(states&(1<<0));
 				_emergency_mode=static_cast<bool>(states&(1<<31));
 				_low_battery=static_cast<bool>(states&(1<<15));
@@ -227,18 +246,16 @@ void ardrone::navdata_update()
 				_video_enabled=static_cast<bool>(states&(1<<1));
 				_motors_good=!static_cast<bool>(states&(1<<12));
 
-				int header=byte[17]<<8|byte[16]<<0;
+				unsigned short header=-1;
+				memcpy(&header,byte+16,2);
 
 				if(header==0)
 				{
-					for(unsigned char ii=0;ii<4;++ii)
-					{
-						reinterpret_cast<uint8_t*>(&_battery_percent)[ii]=byte[24+ii];
-						reinterpret_cast<uint8_t*>(&_pitch)[ii]=byte[28+ii];
-						reinterpret_cast<uint8_t*>(&_roll)[ii]=byte[32+ii];
-						reinterpret_cast<uint8_t*>(&_yaw)[ii]=byte[36+ii];
-						reinterpret_cast<uint8_t*>(&_altitude)[ii]=byte[40+ii];
-					}
+					memcpy(&_battery_percent,byte+24,4);
+					memcpy(&_pitch,byte+28,4);
+					memcpy(&_roll,byte+32,4);
+					memcpy(&_yaw,byte+36,4);
+					memcpy(&_altitude,byte+40,4);
 				}
 			}
 		}
@@ -383,21 +400,24 @@ void ardrone::set_using_brushless_motors(const bool brushless)
 	if(brushless)
 		bool_value="TRUE";
 
-	std::string motor_type_command="AT*CONFIG="+msl::to_string(_count)+",\"control:brushless\",\""+bool_value+"\"\r";
+	std::string motor_type_command="AT*CONFIG="+msl::to_string(_count)+
+		",\"control:brushless\",\""+bool_value+"\"\r";
 	++_count;
 	_control_socket.write(motor_type_command);
 }
 
-void ardrone::set_min_altitude(const int min)
+void ardrone::set_min_altitude(const int mm)
 {
-	std::string altitude_min_command="AT*CONFIG="+msl::to_string(_count)+",\"control:altitude_min\",\""+msl::to_string(min)+"\"\r";
+	std::string altitude_min_command="AT*CONFIG="+msl::to_string(_count)+
+		",\"control:altitude_min\",\""+msl::to_string(mm)+"\"\r";
 	++_count;
 	_control_socket.write(altitude_min_command);
 }
 
-void ardrone::set_max_altitude(const int max)
+void ardrone::set_max_altitude(const int mm)
 {
-	std::string altitude_max_command="AT*CONFIG="+msl::to_string(_count)+",\"control:altitude_max\",\""+msl::to_string(max)+"\"\r";
+	std::string altitude_max_command="AT*CONFIG="+msl::to_string(_count)+
+		",\"control:altitude_max\",\""+msl::to_string(mm)+"\"\r";
 	++_count;
 	_control_socket.write(altitude_max_command);
 }
@@ -406,7 +426,8 @@ void ardrone::set_video_feed_front()
 {
 	if(good())
 	{
-		std::string command="AT*CONFIG="+msl::to_string(_count)+",\"video:video_channel\",\"2\"\r";
+		std::string command="AT*CONFIG="+msl::to_string(_count)+
+			",\"video:video_channel\",\"2\"\r";
 		++_count;
 		_control_socket.write(command);
 	}
@@ -416,7 +437,8 @@ void ardrone::set_video_feed_bottom()
 {
 	if(good())
 	{
-		std::string command="AT*CONFIG="+msl::to_string(_count)+",\"video:video_channel\",\"3\"\r";
+		std::string command="AT*CONFIG="+msl::to_string(_count)+
+			",\"video:video_channel\",\"3\"\r";
 		++_count;
 		_control_socket.write(command);
 	}
@@ -457,19 +479,22 @@ int ardrone::altitude() const
 	return _altitude;
 }
 
+//command gives millidegrees, convert to degrees.
 float ardrone::pitch() const
 {
-	return _pitch;
+	return _pitch/1000.0;
 }
 
+//command gives millidegrees, convert to degrees.
 float ardrone::roll() const
 {
-	return _roll;
+	return _roll/1000.0;
 }
 
+//command gives millidegrees, convert to degrees.
 float ardrone::yaw() const
 {
-	return _yaw;
+	return _yaw/1000.0;
 }
 
 uint8_t* ardrone::video_data() const

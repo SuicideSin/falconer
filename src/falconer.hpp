@@ -51,8 +51,8 @@ class ardrone
 		void set_using_brushless_motors(const bool brushless);
 
 		//In mm.
-		void set_min_altitude(const int min);
-		void set_max_altitude(const int max);
+		void set_min_altitude(const int mm);
+		void set_max_altitude(const int mm);
 
 		void set_video_feed_front();
 		void set_video_feed_bottom();
@@ -63,9 +63,13 @@ class ardrone
 		bool low_battery() const;
 		bool ultrasonic_enabled() const;
 		bool motors_good() const;
+
+		//In degrees.
 		float pitch() const;
 		float roll() const;
 		float yaw() const;
+
+		//In cm.
 		int altitude() const;
 		uint8_t* video_data() const;
 

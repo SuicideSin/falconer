@@ -44,7 +44,7 @@ void setup()
 		std::cout<<":)"<<std::endl;
 
 		a.set_level();
-		a.set_outdoor_mode(false);
+		a.set_outdoor_mode(true);
 		a.set_using_shell(false);
 		a.set_using_brushless_motors(true);
 		a.set_min_altitude(50);
@@ -118,6 +118,8 @@ void loop(const double dt)
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,640,360,0,GL_RGB,GL_UNSIGNED_BYTE,(GLvoid*)a.video_data());
 	glBindTexture(GL_TEXTURE_2D,0);
+
+	std::cout<<a.ultrasonic_enabled()<<std::endl;
 }
 
 void draw()
