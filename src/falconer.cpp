@@ -19,7 +19,7 @@
 //String Utility Header
 #include "msl/string_util.hpp"
 
-//Time Utitilit Header
+//Time Utility Header
 #include "msl/time_util.hpp"
 
 #ifdef FALCONER_VIDEO
