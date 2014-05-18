@@ -1,6 +1,6 @@
 //Falconer Source
 //	Created By:		Mike Moss
-//	Modified On:	05/16/2014
+//	Modified On:	05/18/2014
 
 //Required Libraries:
 //	avcodec
@@ -64,12 +64,7 @@ ardrone::ardrone(const std::string ip,const unsigned short control_port,const un
 	_ultrasonic_enabled(false),
 	_video_enabled(false),
 	_motors_good(false),
-	_pitch(0),_roll(0),_yaw(0),_altitude(0)/*,
-	_outdoor_mode(false),
-	_using_shell(true),
-	_brushless_motors(true),
-	_min_altitude(50),
-	_max_altitude(1000)*/
+	_pitch(0),_roll(0),_yaw(0),_altitude(0)
 {
 	//Hide Libav debug output...can't really print anything else...
 	av_log_set_level(AV_LOG_QUIET);
@@ -215,11 +210,11 @@ bool ardrone::connect(unsigned int time_out)
 			if(_video_socket.available()<=0)
 				_video_socket.write(video_wakeup_command,1,200);
 			if(_navdata_socket.available()>0&&_video_socket.available()>0)
-				break;
+				return true;
 		}
 	}
 
-	return good();
+	return false;
 }
 
 void ardrone::navdata_update()

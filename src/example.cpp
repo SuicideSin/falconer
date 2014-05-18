@@ -1,6 +1,6 @@
 //Falconer Example Source
 //	Created By:		Mike Moss
-//	Modified On:	05/16/2014
+//	Modified On:	05/18/2014
 
 //Required Libraries:
 //	gl
@@ -28,8 +28,7 @@ unsigned int textureId;
 
 int main()
 {
-	msl::start_2d("ardrone",640,360);
-	return 0;
+	return msl::start_2d("ardrone",640,360);
 }
 
 void setup()
@@ -44,7 +43,7 @@ void setup()
 		std::cout<<":)"<<std::endl;
 
 		a.set_level();
-		a.set_outdoor_mode(true);
+		a.set_outdoor_mode(false);
 		a.set_using_shell(false);
 		a.set_using_brushless_motors(true);
 		a.set_min_altitude(50);
@@ -66,9 +65,6 @@ void loop(const double dt)
 	float roll=0;
 	float altitude=0;
 	float yaw=0;
-
-	if(msl::input_check(kb_escape))
-		exit(0);
 
 	if(msl::input_check_pressed(kb_r))
 		a.emergency_mode_toggle();
@@ -119,7 +115,7 @@ void loop(const double dt)
 	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,640,360,0,GL_RGB,GL_UNSIGNED_BYTE,(GLvoid*)a.video_data());
 	glBindTexture(GL_TEXTURE_2D,0);
 
-	std::cout<<a.ultrasonic_enabled()<<std::endl;
+	std::cout<<a.altitude()<<std::endl;
 }
 
 void draw()
@@ -141,25 +137,28 @@ void draw()
 	glDisable(GL_TEXTURE_2D);
 
 	std::string data;
-	data+="Battery:\t"+msl::to_string(a.battery_percent())+"%\n";
 	data+="Pitch:\t\t"+msl::to_string(a.pitch())+"\n";
 	data+="Roll:\t\t"+msl::to_string(a.roll())+"\n";
 	data+="Yaw:\t\t"+msl::to_string(a.yaw())+"\n";
 	data+="Altitude:\t"+msl::to_string(a.altitude())+"\n";
 
+	std::string data2;
+	data2+="Battery:\t"+msl::to_string(a.battery_percent())+"%\n";
+
 	if(a.emergency_mode())
-		data+="Emergency Mode\n";
+		data2+="Emergency Mode\n";
 
 	if(a.low_battery())
-		data+="Low Battery\n";
+		data2+="Low Battery\n";
 
 	if(!a.motors_good())
-		data+="Bad Motor\n";
+		data2+="Bad Motor\n";
 
 	if(a.flying())
-		data+="Flying\n";
+		data2+="Flying\n";
 	else
-		data+="Landed\n";
+		data2+="Landed\n";
 
 	msl::draw_text(-msl::window_width/2.0,msl::window_height/2.0-100,data);
+	msl::draw_text(-msl::window_width/2.0,msl::window_height/2.0-125,data2);
 }
