@@ -8,6 +8,8 @@
 //	glu
 //	glut/freeglut
 
+#define FALCONER_VIDEO 1
+
 #include <iostream>
 #include "msl/socket.hpp"
 #include "msl/string_util.hpp"
