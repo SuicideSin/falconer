@@ -15,7 +15,7 @@
 #include "msl/string_util.hpp"
 #include "msl/2d.hpp"
 #include <string>
-#include "falconer.hpp"
+#include <falconer.hpp>
 
 #ifndef __APPLE__
 	#include <GL/glew.h>
