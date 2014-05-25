@@ -50,7 +50,7 @@ LIB=-lftgl $(OS_GL) $(PTHREAD)
 BIN=-o bin/falconer
 
 #Compiler Flags
-CFLAGS=-O -Wall
+CFLAGS=-O -Wall -Wno-deprecated-declarations
 
 #Search Directories
 DIRS=-I. -I./src -I/usr/local/include -L/usr/local/lib -I/usr/include/freetype2 -I/usr/local/include/freetype2
