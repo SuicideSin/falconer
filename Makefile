@@ -15,7 +15,10 @@ COMPILER=g++
 #Sources
 #Falconer
 FALCONER_DIR=.
-FALCONER=src/example.cpp $(FALCONER_DIR)/falconer.cpp
+FALCONER=$(FALCONER_DIR)/falconer.cpp
+
+#AV
+AV=-lavcodec -lavformat -lavutil -lswscale
 
 #MSL
 MSL_DIR=src/msl
@@ -35,7 +38,7 @@ SRC=$(FALCONER) $(MSL) $(SOIL)
 #Libraries
 #GL
 ifeq ($(shell uname),Darwin)
-	OS_GL=-framework OpenGL -framework Glew -framework GLUT
+	OS_GL=-framework OpenGL -lGLEW -framework GLUT
 else
 	OS_GL=-lGL -lGLU -lglut -lGLEW
 endif
@@ -44,7 +47,7 @@ endif
 PTHREAD=-lpthread
 
 #Full Libraries
-LIB=-lftgl $(OS_GL) $(PTHREAD)
+LIB=-lftgl $(AV) $(OS_GL) $(PTHREAD)
 
 #Binary Name
 BIN=-o bin/falconer
@@ -58,7 +61,7 @@ DIRS=-I. -I./src -I/usr/local/include -L/usr/local/lib -I/usr/include/freetype2 
 all: falconer
 
 falconer:
-	$(COMPILER) $(SRC) $(LIB) $(BIN) $(CFLAGS) $(DIRS)
+	$(COMPILER) src/example.cpp $(SRC) $(LIB) $(BIN) $(CFLAGS) $(DIRS)
 
 clean:
 	rm -rf $(OUT)/falconer

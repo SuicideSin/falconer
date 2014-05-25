@@ -8,7 +8,7 @@
 //	glu
 //	glut/freeglut
 
-#define FALCONER_VIDEO 1
+#define FALCONER_VIDEO true
 
 #include <iostream>
 #include "msl/socket.hpp"
