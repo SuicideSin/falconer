@@ -38,7 +38,7 @@ void setup()
 	msl::set_text_font("verdana.ttf");
 	msl::set_text_size(12);
 
-	glGenTextures(1,&textureId);
+	glGenTextures(1,(GLuint*)&textureId);
 
 	if(a.connect())
 	{
